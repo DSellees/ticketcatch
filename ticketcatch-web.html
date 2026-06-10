@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>TicketCatch</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#1A1A2E;--orange:#FF6B00;--green:#00FF7F;--silver:#A0AEC0;
+  --card:#151525;--divider:#2D2D44;--red:#FC8181;--white:#FFFFFF;
+}
+html,body{height:100%;background:#000;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+#app{
+  max-width:430px;width:100%;min-height:100dvh;height:100dvh;
+  background:var(--bg);margin:0 auto;position:relative;
+  overflow:hidden;display:flex;flex-direction:column;
+}
+/* #root must be a flex column with min-height:0 — without it the scroll chain
+   breaks and .scroll children can never overflow (page appears "frozen") */
+#root{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.screen{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0;overscroll-behavior:contain}
+.scroll::-webkit-scrollbar{display:none}
+
+/* ── ANIMATIONS ─────────────────────────── */
+@keyframes pulse-dot{0%,100%{opacity:.2}50%{opacity:1}}
+@keyframes pulse-scale{0%,100%{transform:scale(.97)}50%{transform:scale(1.03)}}
+@keyframes radar-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes fade-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes map-pulse{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.5);opacity:0}}
+@keyframes laser-scan{0%{top:4%}50%{top:94%}100%{top:4%}}
+
+.live-dot{width:8px;height:8px;border-radius:50%;background:#e53e3e;display:inline-block;animation:pulse-dot .8s infinite}
+.pulse-btn{animation:pulse-scale .9s ease-in-out infinite}
+.fade-in{animation:fade-in .25s ease-out}
+
+/* Press feedback (HIG/MD: tactile response <100ms, transform-only = no reflow) */
+button{touch-action:manipulation;font-family:inherit}
+.btn,.pill,.chip,.icon-btn,.back-btn,.map-hud-btn,.pay-btn{transition:transform .15s ease-out,opacity .15s ease-out}
+.btn:active,.pill:active,.chip:active,.icon-btn:active,.back-btn:active,.map-hud-btn:active,.pay-btn:active{transform:scale(.96);opacity:.85}
+.event-card,.nearby-card,.notif-item{transition:transform .15s ease-out}
+.event-card:active,.nearby-card:active,.notif-item:active{transform:scale(.985)}
+.nav-item:active .nav-icon{transform:scale(.88)}
+.nav-icon{transition:color .2s,transform .15s ease-out}
+
+/* Staggered entrance for event cards (MD: 30-50ms per item) */
+.event-card{animation:fade-in .3s ease-out both}
+.event-card:nth-child(2){animation-delay:.04s}
+.event-card:nth-child(3){animation-delay:.08s}
+.event-card:nth-child(4){animation-delay:.12s}
+.event-card:nth-child(5){animation-delay:.16s}
+.event-card:nth-child(n+6){animation-delay:.2s}
+
+/* Tabular figures: prices & timers update every second without width jitter */
+[data-price-id],.countdown-time,#det-price{font-variant-numeric:tabular-nums}
+
+/* Accessibility: respect reduced motion */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+
+/* ── TYPOGRAPHY ─────────────────────────── */
+.t-white{color:#fff}.t-orange{color:var(--orange)}.t-green{color:var(--green)}
+.t-silver{color:var(--silver)}.t-black{color:#000}.t-red{color:var(--red)}
+.bold{font-weight:700}.xbold{font-weight:900}.semi{font-weight:600}
+.ls{letter-spacing:1.5px}
+
+/* ── LAYOUT HELPERS ─────────────────────── */
+.row{display:flex;align-items:center}.col{display:flex;flex-direction:column}
+.between{justify-content:space-between}.center-x{justify-content:center}
+.center-y{align-items:center}.center{display:flex;align-items:center;justify-content:center}
+.fill{flex:1}.w100{width:100%}.gap4{gap:4px}.gap8{gap:8px}.gap10{gap:10px}.gap12{gap:12px}
+.gap14{gap:14px}.gap16{gap:16px}.gap20{gap:20px}
+.px16{padding:0 16px}.px20{padding:0 20px}.px24{padding:0 24px}
+.py4{padding-top:4px;padding-bottom:4px}.py8{padding-top:8px;padding-bottom:8px}
+.py12{padding-top:12px;padding-bottom:12px}.py16{padding-top:16px;padding-bottom:16px}
+.py18{padding-top:18px;padding-bottom:18px}.py24{padding-top:24px;padding-bottom:24px}
+.p10{padding:10px}.p12{padding:12px}.p14{padding:14px}.p16{padding:16px}
+.p18{padding:18px}.p20{padding:20px}
+.mt4{margin-top:4px}.mt6{margin-top:6px}.mt8{margin-top:8px}.mt10{margin-top:10px}
+.mt12{margin-top:12px}.mt14{margin-top:14px}.mt16{margin-top:16px}
+.mt20{margin-top:20px}.mt24{margin-top:24px}.mt28{margin-top:28px}.mt30{margin-top:30px}
+.mt32{margin-top:32px}.mt40{margin-top:40px}.pb12{padding-bottom:12px}
+
+/* ── COMPONENTS ─────────────────────────── */
+.card{background:var(--card);border-radius:16px;border:1px solid rgba(255,255,255,.05)}
+.card-sm{background:var(--card);border-radius:12px;border:1px solid rgba(255,255,255,.05)}
+.card-orange{background:var(--card);border-radius:16px;border:1.2px solid rgba(255,107,0,.4)}
+.pill{border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;border:none;background:transparent}
+.pill-active{background:var(--orange);color:#000}
+.pill-inactive{border:1.2px solid var(--silver);color:#fff}
+.chip{border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;border:none}
+.btn{border:none;cursor:pointer;font-weight:700;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-orange{background:var(--orange);color:#fff}
+.btn-green{background:var(--green);color:#000}
+.btn-ghost{background:transparent;color:var(--orange);border:none}
+.icon-btn{width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,.45);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff}
+.badge-live{background:rgba(34,17,17,1);border:1px solid rgba(229,62,62,.4);border-radius:8px;padding:4px 8px;display:inline-flex;align-items:center;gap:6px}
+.star{font-size:22px;cursor:pointer;line-height:1}
+.divider{height:1px;background:var(--divider);width:100%;margin:10px 0}
+.input-field{background:var(--card);border:1px solid var(--divider);border-radius:10px;padding:14px 16px 14px 46px;color:#fff;font-size:15px;width:100%;outline:none;-webkit-appearance:none}
+.input-field:focus{border-color:var(--orange)}
+.input-field.error{border-color:#e53e3e}
+.input-wrap{position:relative}.input-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--orange)}
+.err-msg{color:#e53e3e;font-size:12px;margin-top:3px}
+.label{color:var(--silver);font-size:14px;margin-bottom:4px}
+.tag{font-size:11px;font-weight:700;letter-spacing:1px;color:var(--orange)}
+.rounded-box{border-radius:16px;padding:16px}
+
+/* ── BOTTOM NAV ─────────────────────────── */
+#bottom-nav{
+  background:var(--card);border-top:1px solid var(--divider);
+  border-radius:16px 16px 0 0;padding:10px 0 calc(10px + env(safe-area-inset-bottom));
+  display:flex;justify-content:space-around;align-items:center;flex-shrink:0;
+}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 10px;border:none;background:none;position:relative}
+.nav-icon{font-size:22px;transition:color .2s}
+.nav-label{font-size:11px;font-weight:700;transition:color .2s}
+.nav-item.active .nav-icon,.nav-item.active .nav-label{color:var(--orange)}
+.nav-item:not(.active) .nav-icon,.nav-item:not(.active) .nav-label{color:var(--silver)}
+.notif-badge{position:absolute;top:2px;right:6px;background:#e53e3e;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+/* ── EVENT CARD ─────────────────────────── */
+.event-card{border-radius:16px;border:1px solid #2D2D4F;overflow:hidden;cursor:pointer;margin-bottom:16px}
+.event-card-body{padding:16px}
+
+/* ── DETAIL ─────────────────────────────── */
+.detail-backdrop{width:100%;height:240px;position:relative;overflow:hidden}
+.detail-backdrop img{width:100%;height:100%;object-fit:cover;opacity:.6}
+.detail-backdrop-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.4),rgba(26,26,46,.6),#1A1A2E)}
+.detail-backdrop-content{position:absolute;inset:0;padding:18px;display:flex;flex-direction:column;justify-content:space-between}
+.back-btn{width:48px;height:48px;border-radius:50%;background:rgba(0,0,0,.45);border:none;cursor:pointer;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
+
+/* ── COUNTDOWN ───────────────────────────── */
+.countdown-box{background:#2D2D44;border-radius:16px;border:1px solid rgba(255,255,255,.05);padding:16px;text-align:center}
+.countdown-time{font-family:'Courier New',monospace;font-size:40px;font-weight:900;color:#fff;letter-spacing:2px}
+
+/* ── PRICE CHART ─────────────────────────── */
+#price-chart{width:100%;height:160px;display:block}
+
+/* ── WALLET QR ───────────────────────────── */
+.qr-wrapper{width:160px;height:160px;background:#fff;border-radius:12px;padding:10px;margin:0 auto;position:relative;overflow:hidden}
+.qr-laser{position:absolute;left:0;right:0;height:3px;background:var(--green);animation:laser-scan 2.2s linear infinite;z-index:2}
+
+/* ── MAP (OpenStreetMap / Leaflet) ───────── */
+#radar-map{width:100%;border-radius:24px;border:1.2px solid rgba(255,255,255,.1);background:#0F0F1A;position:relative;overflow:hidden}
+.leaflet-container{background:#0F0F1A;font-family:inherit}
+/* Dark-theme the standard OSM raster tiles (invert + desaturate) */
+.leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(.85) saturate(.35) contrast(.92)}
+.leaflet-control-attribution{background:rgba(0,0,0,.55)!important;color:rgba(255,255,255,.35)!important;font-size:8px!important}
+.leaflet-control-attribution a{color:rgba(255,255,255,.5)!important}
+.lf-pin-wrap{background:none;border:none}
+.lf-pin{position:relative;cursor:pointer;transform:translate(-50%,-50%)}
+/* halo centered via margins (map-pulse animates transform, so it can't be used for centering) */
+.lf-pin-halo{position:absolute;width:36px;height:36px;border-radius:50%;background:rgba(255,107,0,.35);border:1.5px solid rgba(255,107,0,.5);top:50%;left:50%;margin:-18px 0 0 -18px;animation:map-pulse 1.2s ease-out infinite;pointer-events:none}
+.map-landmark{position:absolute;background:rgba(0,0,0,.4);border-radius:4px;padding:1.5px 4px;font-size:7px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:.5px;pointer-events:none}
+.map-pin{position:absolute;transform:translate(-50%,-50%);cursor:pointer;z-index:5}
+.map-pin-dot{width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid;display:flex;align-items:center;justify-content:center}
+.map-pin-dot-inner{width:5px;height:5px;border-radius:50%}
+.map-pin-price{position:absolute;top:-20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);border-radius:5px;padding:1.5px 5px;font-size:9px;font-weight:700;color:#fff;white-space:nowrap;border:1px solid;pointer-events:none}
+.map-hud{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:8px;z-index:10}
+.map-hud-btn{width:34px;height:34px;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#fff;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;border:none}
+.map-live-badge{position:absolute;left:12px;top:12px;background:rgba(0,0,0,.75);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:5px 10px;display:flex;align-items:center;gap:6px;z-index:10}
+.map-popup{position:absolute;bottom:12px;left:12px;right:12px;border-radius:14px;z-index:20;cursor:pointer;animation:fade-in .2s}
+
+/* ── NEARBY PLANS ───────────────────────── */
+.nearby-scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px}
+.nearby-scroll::-webkit-scrollbar{display:none}
+.nearby-card{min-width:260px;background:var(--card);border-radius:12px;border:1px solid rgba(255,255,255,.04);padding:10px;cursor:pointer;flex-shrink:0}
+
+/* ── NOTIFICATION ITEM ──────────────────── */
+.notif-item{border-radius:12px;border:1px solid;margin-bottom:12px;cursor:pointer;animation:fade-in .2s}
+
+/* ── TICKET CARD (WALLET) ───────────────── */
+.ticket-card{border-radius:16px;border:1.2px solid rgba(255,107,0,.4);background:var(--card);margin-bottom:20px;padding:18px}
+
+/* ── SEAT DETAILS ───────────────────────── */
+.seat-col{display:flex;flex-direction:column;gap:2px}
+.seat-label{font-size:11px;color:var(--silver)}
+.seat-val{font-size:15px;font-weight:700;color:#fff}
+
+/* ── CHECKOUT SAVINGS ───────────────────── */
+.savings-box{background:var(--green);border-radius:16px;padding:20px;text-align:center}
+
+/* ── FAST PAY BTNS ──────────────────────── */
+.pay-btn{flex:1;height:50px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:15px}
+
+/* ── EMPTY STATE ───────────────────────── */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 32px;text-align:center;gap:16px}
+.empty-icon-wrap{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:36px}
+
+/* ── TICKET VISUAL ──────────────────────── */
+.ticket-box{flex:1;height:100px;border-radius:12px;border:1.5px solid;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+
+/* ── SCARCITY ───────────────────────────── */
+.scarcity{animation:pulse-dot .8s infinite;font-size:13px;font-weight:900;letter-spacing:1px;color:var(--orange);text-align:center;text-transform:uppercase}
+
+/* ── DETAIL STICKY PRICE BAR ────────────── */
+.detail-cta{
+  flex-shrink:0;background:rgba(21,21,37,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-top:1px solid var(--divider);box-shadow:0 -8px 24px rgba(0,0,0,.35);
+  padding:12px 20px calc(12px + env(safe-area-inset-bottom));
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+}
+.detail-cta-price{font-size:26px;font-weight:900;color:var(--orange);font-variant-numeric:tabular-nums;line-height:1.1}
+.detail-cta-orig{font-size:13px;color:var(--silver);text-decoration:line-through;font-variant-numeric:tabular-nums}
+.detail-cta-save{font-size:11px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums}
+
+/* ── SCREEN TRANSITIONS ─────────────────── */
+.screen-wrap{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:50;animation:fade-in .2s}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="root"></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+const S = {
+  screen: 'login',        // login | radar | detail | selection | checkout
+  activeTab: 'Eventos',   // Eventos | Favoritos | Alertas | Radar | Mis Entradas
+  user: null,
+  events: [],
+  favorites: new Set(),
+  notifications: [],
+  notifId: 0,
+  boughtTickets: [],
+  selectedEventId: null,
+  selectedCategory: 'Todo',
+  radarCategory: 'Todo',
+  checkoutEvent: null,
+  checkoutLockedPrice: 0,
+  checkoutQty: 1,
+  mapScale: 1.2,
+  mapOffsetX: 0,
+  mapOffsetY: 0,
+  selectedMapEventId: null,
+  selectedNearbyId: null,
+  lastNotifiedPrices: {},
+  loginEmail: 'usuario@ticketcatch.com',
+  loginPassword: '1234',
+};
+
+/* ═══════════════════════════════════════════
+   EVENTS DATA
+═══════════════════════════════════════════ */
+function initEvents(){
+  return [
+    {id:'evt_el_clasico',teams:'FC Barcelona vs Real Madrid',stadium:'Spotify Camp Nou',date:'Hoy',time:'21:00h',category:'Futbol',originalPrice:180,basePrice:135,floorPrice:65,totalDur:1800,rem:1140,enViu:true,lat:41.3809,lng:2.1228},
+    {id:'evt_girona_atletico',teams:'Girona FC vs Atlético de Madrid',stadium:'Estadio Municipal de Montilivi',date:'Mañana',time:'19:30h',category:'Futbol',originalPrice:95,basePrice:80,floorPrice:45,totalDur:1800,rem:850,enViu:true,lat:41.9614,lng:2.8286},
+    {id:'evt_cl_basquet',teams:'FC Barcelona Lassa vs Real Madrid Baloncesto',stadium:'Palau Blaugrana',date:'06 de Junio',time:'18:00h',category:'Basquet',originalPrice:60,basePrice:50,floorPrice:25,totalDur:1800,rem:610,enViu:true,lat:41.3815,lng:2.1213},
+    {id:'evt_music_festival',teams:'El Clásico Music Festival',stadium:'Estadio Olímpico Lluís Companys',date:'12 de Junio',time:'22:00h',category:'Nit',originalPrice:45,basePrice:40,floorPrice:18,totalDur:1800,rem:420,enViu:true,lat:41.3638,lng:2.1526},
+    {id:'evt_el_rei_lleo',teams:'El Rey León - El Musical',stadium:'Teatro Coliseum',date:'Hoy',time:'20:00h',category:'Teatre',originalPrice:85,basePrice:65,floorPrice:35,totalDur:1800,rem:1200,enViu:true,lat:41.3892,lng:2.1648},
+    {id:'evt_placa_diamant',teams:'La Plaza del Diamante',stadium:'Teatro Nacional de Catalunya (TNC)',date:'Este fin de semana',time:'19:00h',category:'Teatre',originalPrice:40,basePrice:32,floorPrice:15,totalDur:1800,rem:950,enViu:true,lat:41.3992,lng:2.1856},
+    {id:'evt_masia_maldita',teams:'La Masía Maldita: Escape Room de Terror',stadium:'Horror Box S.L.',date:'Mañana',time:'22:30h',category:'EscapeRoom',originalPrice:60,basePrice:48,floorPrice:25,totalDur:1800,rem:720,enViu:true,lat:41.3735,lng:2.1192},
+    {id:'evt_missio_imposible',teams:'Misión Imposible: Código Nuclear',stadium:'Escape Room Center',date:'08 de Junio',time:'17:00h',category:'EscapeRoom',originalPrice:50,basePrice:40,floorPrice:20,totalDur:1800,rem:540,enViu:true,lat:41.3851,lng:2.1734},
+    {id:'evt_museu_picasso',teams:'Entrada General + Expo Temporal Picasso',stadium:'Museo Picasso de Barcelona',date:'Hoy',time:'16:00h',category:'Museus',originalPrice:22,basePrice:18,floorPrice:9,totalDur:1800,rem:1400,enViu:true,lat:41.3853,lng:2.1808},
+    {id:'evt_macba',teams:'Experiencia Inmersiva de Arte Moderno',stadium:'MACBA',date:'Mañana',time:'11:30h',category:'Museus',originalPrice:18,basePrice:14,floorPrice:6,totalDur:1800,rem:300,enViu:true,lat:41.3831,lng:2.1668},
+    {id:'evt_cyberpunk_laser',teams:'Batalla Cyberpunk Laser',stadium:'Laser Tag Arena Glòries',date:'Hoy',time:'19:00h',category:'LaserTag',originalPrice:15,basePrice:12,floorPrice:6,totalDur:1800,rem:1050,enViu:true,lat:41.4022,lng:2.1884},
+    {id:'evt_invasion_zombi',teams:'Invasión Zombi: Laser Action',stadium:'Laser Zone Esports',date:'Mañana',time:'21:15h',category:'LaserTag',originalPrice:18,basePrice:15,floorPrice:8,totalDur:1800,rem:880,enViu:true,lat:41.3851,lng:2.1734},
+    {id:'evt_cine_vip',teams:'Butaca VIP + Combo Premium (Cine)',stadium:'Cinesa Diagonal Mar',date:'Hoy',time:'22:15h',category:'Cinema',originalPrice:21,basePrice:17,floorPrice:10,totalDur:1800,rem:1250,enViu:true,lat:41.4116,lng:2.2215},
+    {id:'evt_karting_gp',teams:'Gran Premio de Karting (2 Mangas)',stadium:'Karting Indoor Barcelona',date:'Este fin de semana',time:'12:00h',category:'Karting',originalPrice:45,basePrice:36,floorPrice:18,totalDur:1800,rem:640,enViu:true,lat:41.3851,lng:2.1734},
+    // POI events: only visible on the OpenStreetMap radar (mapOnly), fully selectable & buyable
+    {id:'poi_espanyol',teams:'RCD Espanyol vs Sevilla FC',stadium:'RCDE Stadium',date:'13 de Junio',time:'18:30h',category:'Futbol',originalPrice:70,basePrice:55,floorPrice:28,totalDur:1800,rem:990,enViu:true,lat:41.3479,lng:2.0750,mapOnly:true},
+    {id:'poi_sant_jordi',teams:'Indie Night Live: Concierto Arena',stadium:'Palau Sant Jordi',date:'14 de Junio',time:'21:30h',category:'Nit',originalPrice:55,basePrice:46,floorPrice:22,totalDur:1800,rem:760,enViu:true,lat:41.3640,lng:2.1517,mapOnly:true},
+    {id:'poi_camp_nou_tour',teams:'Camp Nou Tour & Museo Inmersivo',stadium:'Spotify Camp Nou',date:'Hoy',time:'17:00h',category:'Museus',originalPrice:28,basePrice:24,floorPrice:12,totalDur:1800,rem:1300,enViu:true,lat:41.3795,lng:2.1190,mapOnly:true},
+    {id:'poi_sagrada',teams:'Visita Nocturna a las Torres',stadium:'Sagrada Família',date:'Mañana',time:'20:30h',category:'Museus',originalPrice:36,basePrice:30,floorPrice:15,totalDur:1800,rem:520,enViu:true,lat:41.4036,lng:2.1744,mapOnly:true},
+    {id:'poi_razzmatazz',teams:'Warehouse Techno Session',stadium:'Sala Razzmatazz',date:'Hoy',time:'23:30h',category:'Nit',originalPrice:25,basePrice:20,floorPrice:10,totalDur:1800,rem:1500,enViu:true,lat:41.3977,lng:2.1903,mapOnly:true},
+    {id:'poi_palau_musica',teams:'Noche de Flamenco en el Palau',stadium:'Palau de la Música Catalana',date:'12 de Junio',time:'20:00h',category:'Teatre',originalPrice:48,basePrice:38,floorPrice:19,totalDur:1800,rem:880,enViu:true,lat:41.3875,lng:2.1751,mapOnly:true},
+  ];
+}
+
+/* ═══════════════════════════════════════════
+   PRICE / LOGIC
+═══════════════════════════════════════════ */
+function currentPrice(ev){
+  const prog = 1 - Math.max(0,Math.min(1,ev.rem/ev.totalDur));
+  const c = ev.basePrice - (ev.basePrice - ev.floorPrice)*prog;
+  return Math.max(ev.floorPrice, Math.round(c*100)/100);
+}
+function savedAmount(ev){ return Math.max(0, Math.round((ev.originalPrice - currentPrice(ev))*100)/100); }
+
+function fmt(n){ return n.toFixed(2); }
+
+function countdown(rem){
+  const h = Math.floor(rem/3600);
+  const m = Math.floor((rem%3600)/60);
+  const s = rem%60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function catLabel(cat){
+  const m={Futbol:'FÚTBOL',Basquet:'BALONCESTO',Nit:'NOCHE',Teatre:'TEATRO',EscapeRoom:'ESCAPE ROOM',Museus:'MUSEOS',LaserTag:'LASER TAG',Cinema:'CINE',Karting:'KARTING'};
+  return m[cat]||cat;
+}
+function catColor(cat){
+  const m={Futbol:'#1DB954',Basquet:'#E65100',Nit:'#8E24AA',Teatre:'#F57C00',EscapeRoom:'#757575',Museus:'#0288D1',LaserTag:'#00ACC1',Cinema:'#D81B60',Karting:'#FBC02D'};
+  return m[cat]||'#A0AEC0';
+}
+function catGradient(cat){
+  const m={Futbol:'#132A13',Basquet:'#2E1313',Nit:'#291334',Teatre:'#2E1B13',EscapeRoom:'#1F1B24',Museus:'#13202E',LaserTag:'#132E2E',Cinema:'#1B1B1B',Karting:'#292413'};
+  return m[cat]||'#1A1A2E';
+}
+
+/* ═══════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════ */
+function go(screen, data={}){
+  Object.assign(S, data);
+  S.screen = screen;
+  render();
+}
+
+/* ═══════════════════════════════════════════
+   NOTIFICATIONS
+═══════════════════════════════════════════ */
+function addNotif(eventId, title, message, type){
+  S.notifications.unshift({
+    id:'n'+(++S.notifId), eventId, title, message, type,
+    isRead:false, ts:Date.now()
+  });
+  // If Alertas tab is open, re-render only tab content (no images = no flicker)
+  if(S.screen==='radar' && S.activeTab==='Alertas'){
+    const tc=document.getElementById('tab-content');
+    if(tc) tc.innerHTML=renderTabContent();
+  }
+  // Badge is updated by the next tickUpdate() call (called every second)
+}
+function timeLabel(ts){
+  const d=(Date.now()-ts)/1000;
+  if(d<4)return'Ahora mismo';
+  if(d<60)return`Hace ${Math.floor(d)} s`;
+  if(d<3600)return`Hace ${Math.floor(d/60)} min`;
+  return'Hace horas';
+}
+
+/* ═══════════════════════════════════════════
+   TICKER (real-time price drop + notifications)
+═══════════════════════════════════════════ */
+let tickerInterval=null;
+function startTicker(){
+  if(tickerInterval)clearInterval(tickerInterval);
+  tickerInterval=setInterval(()=>{
+    S.events = S.events.map(ev=>{
+      let rem = ev.rem - 1;
+      let tickets = ev.tickets;
+      if(rem<=0){ rem = ev.totalDur; tickets = initialTickets(ev.id); } // new auction round restocks
+      // Realistic slow sell-off: other buyers snap seats more often as the price drops
+      else {
+        const urgency = 1 - rem/ev.totalDur;
+        if(tickets>2 && Math.random() < 0.006 + 0.03*urgency*urgency) tickets--;
+      }
+      const updated = {...ev, rem, tickets};
+
+      // Time urgency alerts
+      if(rem===600||rem===300||rem===60){
+        const isFav = S.favorites.has(ev.id);
+        const mins = Math.floor(rem/60);
+        addNotif(ev.id,`⏳ ¡Tiempo límite de oferta!`,`Quedan solo ${mins} min para comprar entradas de ${ev.teams}${isFav?' (★ Favorito)':''}.`,'time_urgency');
+      }
+
+      // Price drop alerts for favorites
+      const cp = currentPrice(updated);
+      const last = S.lastNotifiedPrices[ev.id];
+      if(last===undefined){ S.lastNotifiedPrices[ev.id]=cp; }
+      else if(last-cp>=5 && S.favorites.has(ev.id)){
+        addNotif(ev.id,`📉 ¡Bajada de precio!`,`El precio de ${ev.teams} ha bajado a ${fmt(cp)}€, ¡un ahorro de ${fmt(updated.originalPrice-cp)}€!`,'price_drop');
+        S.lastNotifiedPrices[ev.id]=cp;
+      }
+
+      return updated;
+    });
+    tickUpdate();
+  },1000);
+}
+
+/* ═══════════════════════════════════════════
+   TICK UPDATE — surgical DOM patches, no re-render
+═══════════════════════════════════════════ */
+function tickUpdate(){
+  // 1. Update event prices wherever they are visible
+  S.events.forEach(ev=>{
+    const p = fmt(currentPrice(ev))+'€';
+    document.querySelectorAll(`[data-price-id="${ev.id}"]`).forEach(el=>{
+      if(el.textContent!==p) el.textContent=p;
+    });
+  });
+
+  // 2. Detail screen: countdown + big price + chart
+  if(S.screen==='detail'){
+    const ev=S.events.find(e=>e.id===S.selectedEventId);
+    if(ev){
+      const cd=document.getElementById('det-countdown');
+      if(cd){ const t=countdown(ev.rem); if(cd.textContent!==t) cd.textContent=t; }
+      const dp=document.getElementById('det-price');
+      if(dp){ const p=fmt(currentPrice(ev))+'€'; if(dp.textContent!==p) dp.textContent=p; }
+      const cs=document.getElementById('cta-save');
+      if(cs){ const t=`Ahorras ${fmt(savedAmount(ev))}€`; if(cs.textContent!==t) cs.textContent=t; }
+      const cc=document.getElementById('cta-countdown');
+      if(cc){ const t=countdown(ev.rem); if(cc.textContent!==t) cc.textContent=t; }
+      const sc=document.getElementById('det-scarcity');
+      if(sc){
+        const t=`¡Quedan solo ${ev.tickets} entradas!`;
+        if(sc.textContent!==t) sc.textContent=t;
+        sc.style.color = ev.tickets<=5 ? 'var(--red)' : 'var(--orange)';
+      }
+      if(!chartRAF) drawPriceChart(ev); // reduced-motion fallback: one redraw per second
+    }
+  }
+
+  // 3. Notification badge — update in place, create/remove as needed
+  const unread=S.notifications.filter(n=>!n.isRead).length;
+  const bellBtn=document.querySelector('[data-nav="Alertas"]');
+  if(bellBtn){
+    let badge=bellBtn.querySelector('.notif-badge');
+    if(unread>0){
+      if(!badge){
+        badge=document.createElement('span');
+        badge.className='notif-badge';
+        bellBtn.appendChild(badge);
+      }
+      const txt=unread>9?'9+':String(unread);
+      if(badge.textContent!==txt) badge.textContent=txt;
+    } else if(badge){
+      badge.remove();
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════
+   RENDER SCHEDULER (used only for user actions)
+═══════════════════════════════════════════ */
+let renderPending=false;
+function scheduleRender(){
+  if(!renderPending){
+    renderPending=true;
+    requestAnimationFrame(()=>{ renderPending=false; render(); });
+  }
+}
+
+/* ═══════════════════════════════════════════
+   SVG ICONS
+═══════════════════════════════════════════ */
+const ICONS={
+  stadium:'🏟',star:'⭐',starFilled:'★',bell:'🔔',ticket:'🎟',compass:'🧭',
+  back:'←',location:'📍',email:'✉️',lock:'🔒',block:'🚫',delete:'🗑',
+  add:'+',minus:'−',qr:'▦',note:'📋',lock2:'🔐',confnum:'🎫',
+};
+
+/* ═══════════════════════════════════════════
+   LOGIN SCREEN
+═══════════════════════════════════════════ */
+function renderLogin(){
+  return `
+<div class="screen scroll fade-in" style="background:var(--bg);padding:0 24px">
+  <div style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0">
+    ${renderLogo('large')}
+    <p class="t-silver mt8" style="font-size:15px;text-align:center">Inicia sesión para cazar tu oferta</p>
+
+    <div class="w100 mt40">
+      <label class="label">Email</label>
+      <div class="input-wrap">
+        <span class="input-icon">✉️</span>
+        <input id="inp-email" type="email" class="input-field" placeholder="ejemplo@correo.com"
+          value="${S.loginEmail||''}" autocomplete="email">
+      </div>
+      <div id="email-err" class="err-msg" style="display:none"></div>
+    </div>
+
+    <div class="w100 mt16">
+      <label class="label">Contraseña</label>
+      <div class="input-wrap">
+        <span class="input-icon">🔒</span>
+        <input id="inp-pwd" type="password" class="input-field" placeholder="Contraseña"
+          value="${S.loginPassword||''}" autocomplete="current-password">
+      </div>
+      <div id="pwd-err" class="err-msg" style="display:none"></div>
+    </div>
+
+    <button class="btn btn-orange w100 mt32" style="height:54px;font-size:16px;border-radius:12px" onclick="doLogin()">
+      ENTRAR
+    </button>
+
+    <p class="t-silver mt24" style="font-size:14px;cursor:pointer;text-decoration:underline" onclick="quickRegister()">
+      ¿No tienes cuenta? Regístrate
+    </p>
+  </div>
+</div>`;
+}
+
+function doLogin(){
+  const email=document.getElementById('inp-email').value.trim();
+  const pwd=document.getElementById('inp-pwd').value;
+  const emailEl=document.getElementById('email-err');
+  const pwdEl=document.getElementById('pwd-err');
+  let ok=true;
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    emailEl.textContent='Introduce un correo electrónico válido';
+    emailEl.style.display='block';
+    document.getElementById('inp-email').classList.add('error');
+    ok=false;
+  }else{emailEl.style.display='none';}
+  if(pwd.length<4){
+    pwdEl.textContent='Mínimo 4 caracteres';
+    pwdEl.style.display='block';
+    document.getElementById('inp-pwd').classList.add('error');
+    ok=false;
+  }else{pwdEl.style.display='none';}
+  if(ok){ S.user=email; go('radar'); }
+}
+
+function quickRegister(){
+  const e=document.getElementById('inp-email');
+  S.user=(e&&e.value.trim())||'cazaofertas@ticketcatch.com';
+  go('radar');
+}
+
+/* ═══════════════════════════════════════════
+   LOGO
+═══════════════════════════════════════════ */
+function renderLogo(size='small'){
+  const s=size==='large'?46:36;
+  return `
+<div style="display:flex;align-items:center;gap:12px">
+  <div style="width:${s}px;height:${s}px;background:#121226;border-radius:12px;border:2px solid var(--orange);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+    <svg width="${s*0.6}" height="${s*0.6}" viewBox="0 0 28 28">
+      <circle cx="14" cy="14" r="12" fill="none" stroke="#FF6B00" stroke-width="2"/>
+      <line x1="14" y1="14" x2="14" y2="8" stroke="#FF6B00" stroke-width="2" stroke-linecap="round"/>
+      <line x1="14" y1="14" x2="20" y2="14" stroke="#FF6B00" stroke-width="2" stroke-linecap="round"/>
+      <rect x="11" y="-1" width="6" height="3.5" rx="1" fill="#FF6B00"/>
+      <circle cx="2" cy="14" r="2.5" fill="#121226"/>
+      <circle cx="26" cy="14" r="2.5" fill="#121226"/>
+    </svg>
+  </div>
+  <span style="font-weight:900;font-size:${size==='large'?24:18}px;color:#fff;letter-spacing:1.5px">TicketCatch</span>
+</div>`;
+}
+
+/* ═══════════════════════════════════════════
+   RADAR SCREEN (main tabs)
+═══════════════════════════════════════════ */
+function renderRadar(){
+  const unread = S.notifications.filter(n=>!n.isRead).length;
+  return `
+<div class="screen fade-in" style="background:var(--bg)">
+  <div class="fill scroll" id="tab-content">
+    ${renderTabContent()}
+  </div>
+  <nav id="bottom-nav">
+    ${navItem('Eventos','🏟','Eventos')}
+    ${navItem('Favoritos','★','Favoritos')}
+    ${navItem('Radar','🧭','Radar')}
+    ${navItemBell(unread)}
+    ${navItem('Mis Entradas','🎟','Mis Entradas')}
+  </nav>
+</div>`;
+}
+
+function navItem(tab, icon, label){
+  const active = S.activeTab===tab;
+  return `<button class="nav-item ${active?'active':''}" onclick="setTab('${tab}')">
+    <span class="nav-icon">${icon}</span>
+    <span class="nav-label">${label}</span>
+  </button>`;
+}
+
+function navItemBell(unread){
+  const active = S.activeTab==='Alertas';
+  return `<button class="nav-item ${active?'active':''}" onclick="setTab('Alertas')" style="position:relative" data-nav="Alertas">
+    <span class="nav-icon">🔔</span>
+    <span class="nav-label">Alertas</span>
+    ${unread>0?`<span class="notif-badge">${unread>9?'9+':unread}</span>`:''}
+  </button>`;
+}
+
+function setTab(tab){
+  S.activeTab=tab;
+  render();
+}
+
+function renderTabContent(){
+  switch(S.activeTab){
+    case 'Eventos': return renderEventosTab();
+    case 'Favoritos': return renderFavoritosTab();
+    case 'Alertas': return renderAlertasTab();
+    case 'Radar': return renderRadarTab();
+    case 'Mis Entradas': return renderWalletTab();
+    default: return '';
+  }
+}
+
+/* ── EVENTOS TAB ─────────────────────────── */
+const CATS=['Todo','Fútbol','Baloncesto','Noche','Teatro','Escape Room','Museos','Laser Tag','Cine','Karting'];
+const CAT_MAP={'Fútbol':'Futbol','Baloncesto':'Basquet','Noche':'Nit','Teatro':'Teatre','Escape Room':'EscapeRoom','Museos':'Museus','Laser Tag':'LaserTag','Cine':'Cinema','Karting':'Karting'};
+
+function getFiltered(category){
+  const base=S.events.filter(e=>!e.mapOnly); // POI events live only on the map
+  if(category==='Todo') return base;
+  const c=CAT_MAP[category];
+  return base.filter(e=>e.category===c);
+}
+
+function renderEventosTab(){
+  const list = getFiltered(S.selectedCategory);
+  return `
+<div style="padding-bottom:8px">
+  <div style="text-align:center;padding:18px 0">
+    <span style="font-size:20px;font-weight:700;color:#fff">Eventos Disponibles</span>
+  </div>
+  <div style="overflow-x:auto;padding:0 16px 8px;display:flex;gap:8px;scrollbar-width:none">
+    ${CATS.map(c=>`<button class="pill ${S.selectedCategory===c?'pill-active':'pill-inactive'}" onclick="setCat('${c}')">${c}</button>`).join('')}
+  </div>
+  <div class="px16 mt16">
+    ${list.length===0
+      ?`<div class="empty-state"><span style="font-size:48px">🚫</span><p class="t-silver" style="font-size:15px">Aún no hay eventos para esta categoría</p></div>`
+      :list.map(ev=>renderEventCard(ev)).join('')
+    }
+  </div>
+</div>`;
+}
+
+function setCat(c){
+  S.selectedCategory=c;
+  render();
+}
+
+function renderEventCard(ev){
+  const price=currentPrice(ev);
+  const isFav=S.favorites.has(ev.id);
+  const cat=catLabel(ev.category);
+  const grad=catGradient(ev.category);
+  const img=DETAIL_IMGS[ev.category]||DETAIL_IMGS.Futbol;
+  return `
+<div class="event-card" onclick="goDetail('${ev.id}')"
+  style="background-image:linear-gradient(125deg,rgba(21,21,37,.96) 38%,${grad}cc 75%,${grad}99),url('${img}');background-size:cover;background-position:center">
+  <div class="event-card-body">
+    <div class="row between">
+      <div>
+        ${ev.enViu?`<span class="badge-live"><span class="live-dot"></span><span style="color:#e53e3e;font-size:11px;font-weight:700">EN VIVO</span></span>`:'<span></span>'}
+      </div>
+      <div class="row gap12">
+        <span class="tag">${cat}</span>
+        <span class="star" onclick="event.stopPropagation();toggleFav('${ev.id}')"
+          style="color:${isFav?'var(--orange)':'rgba(160,174,192,.35)'}">★</span>
+      </div>
+    </div>
+    <div class="mt12" style="font-size:16px;font-weight:800;color:#fff;line-height:1.3">${ev.teams}</div>
+    <div class="row gap8 mt6"><span style="font-size:14px">🏟</span><span class="t-silver" style="font-size:13px">${ev.stadium}</span></div>
+    <div class="row gap8 mt4"><span style="font-size:13px">📋</span><span class="t-silver" style="font-size:13px">${ev.date} • ${ev.time}</span></div>
+    <div class="row" style="justify-content:flex-end;margin-top:16px;align-items:flex-end">
+      <div style="text-align:right">
+        <div class="t-silver" style="font-size:11px">Desde</div>
+        <div class="row gap8 center-y">
+          <span class="t-silver" style="font-size:14px;text-decoration:line-through">${fmt(ev.originalPrice)}€</span>
+          <span class="t-orange" style="font-size:22px;font-weight:900" data-price-id="${ev.id}">${fmt(price)}€</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+/* ── FAVORITOS TAB ───────────────────────── */
+function renderFavoritosTab(){
+  const favs = S.events.filter(e=>S.favorites.has(e.id));
+  return `
+<div>
+  <div style="text-align:center;padding:18px 0">
+    <span style="font-size:20px;font-weight:700;color:#fff">Mis Favoritos ★</span>
+  </div>
+  ${favs.length===0
+    ?`<div class="empty-state">
+        <div class="empty-icon-wrap">★</div>
+        <p style="font-size:18px;font-weight:700;color:#fff">Lista de favoritos vacía</p>
+        <p class="t-silver" style="font-size:14px">Toca el icono de estrella de cualquier evento para recibir alertas automáticas de bajadas de precio o urgencia de tiempo.</p>
+      </div>`
+    :`<div class="px16 mt8">${favs.map(ev=>renderEventCard(ev)).join('')}</div>`
+  }
+</div>`;
+}
+
+/* ── ALERTAS TAB ─────────────────────────── */
+function renderAlertasTab(){
+  const notifs = S.notifications;
+  return `
+<div>
+  <div class="row between px20 py18">
+    <span style="font-size:20px;font-weight:700;color:#fff">Centro de Alertas Live</span>
+    ${notifs.length>0
+      ?`<button class="chip" style="background:rgba(229,62,62,.12);border:1px solid rgba(229,62,62,.25);color:#FC8181" onclick="clearNotifs()">
+          🗑 Limpiar todo
+        </button>`
+      :''
+    }
+  </div>
+  ${notifs.length===0
+    ?`<div class="empty-state">
+        <div class="empty-icon-wrap">🔔</div>
+        <p style="font-size:18px;font-weight:700;color:#fff">Sin alertas pendientes</p>
+        <p class="t-silver" style="font-size:14px">Tus alertas sobre disminuciones de precio de tus favoritos u ofertas limitadas se mostrarán en tiempo real.</p>
+      </div>`
+    :`<div class="px16">${notifs.map(n=>renderNotifItem(n)).join('')}</div>`
+  }
+</div>`;
+}
+
+function renderNotifItem(n){
+  const color = n.type==='price_drop'?'var(--orange)':n.type==='time_urgency'?'#FFCC00':'var(--green)';
+  const borderColor = n.isRead?'rgba(255,255,255,.05)':color.replace(')',', .35)').replace('rgba','rgba').replace('var(--orange)','rgba(255,107,0,.35)').replace('#FFCC00','rgba(255,204,0,.35)').replace('var(--green)','rgba(0,255,127,.35)');
+  return `
+<div class="notif-item" style="background:${n.isRead?'rgba(21,21,37,.6)':'var(--card)'};border-color:${n.isRead?'rgba(255,255,255,.05)':color}"
+  onclick="markNotifRead('${n.id}')">
+  <div class="row p14 gap14">
+    <div style="width:40px;height:40px;border-radius:50%;background:${color.replace(')',', .15)').replace('var(--orange)','rgba(255,107,0,.15)').replace('#FFCC00','rgba(255,204,0,.15)').replace('var(--green)','rgba(0,255,127,.15)')};
+      border:1px solid ${color.replace(')',', .3)').replace('var(--orange)','rgba(255,107,0,.3)').replace('#FFCC00','rgba(255,204,0,.3)').replace('var(--green)','rgba(0,255,127,.3)')};
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">
+      ${n.type==='favorite'?'★':'🔔'}
+    </div>
+    <div class="fill">
+      <div class="row between">
+        <span style="font-weight:700;font-size:14px;color:#fff;flex:1">${n.title}</span>
+        <span class="t-silver" style="font-size:11px;margin-left:8px">${timeLabel(n.ts)}</span>
+      </div>
+      <div style="font-size:13px;color:${n.isRead?'var(--silver)':'rgba(255,255,255,.9)'};margin-top:4px;line-height:1.4">${n.message}</div>
+    </div>
+  </div>
+</div>`;
+}
+
+function clearNotifs(){
+  S.notifications=[];
+  render();
+}
+
+function markNotifRead(id){
+  S.notifications=S.notifications.map(n=>n.id===id?{...n,isRead:true}:n);
+  render();
+}
+
+/* ── WALLET TAB ──────────────────────────── */
+function renderWalletTab(){
+  const tickets = S.boughtTickets;
+  return `
+<div>
+  <div style="text-align:center;padding:18px 0">
+    <span style="font-size:20px;font-weight:700;color:#fff">Mis Entradas</span>
+  </div>
+  ${tickets.length===0
+    ?`<div class="empty-state">
+        <span style="font-size:72px">🎟</span>
+        <p style="font-size:16px;font-weight:700;color:var(--silver)">Aún no tienes ninguna entrada guardada.</p>
+        <p class="t-silver" style="font-size:13px">¡Participa en el Chicken Game desde el radar de eventos para conseguir un descuento brutal!</p>
+        <button class="btn btn-orange" style="height:44px;padding:0 24px;font-size:14px;margin-top:8px" onclick="setTab('Eventos')">Ver Radar de Eventos</button>
+      </div>`
+    :`<div class="px24">
+        <div style="text-align:right;margin-bottom:4px">
+          <button class="btn-ghost" style="font-size:12px;color:#e53e3e;background:none;border:none;cursor:pointer" onclick="clearTickets()">Borrar Historial</button>
+        </div>
+        ${tickets.map(t=>renderTicketCard(t)).join('')}
+      </div>`
+  }
+</div>`;
+}
+
+function renderTicketCard(t){
+  const seed = hashCode(t.id);
+  return `
+<div class="ticket-card">
+  <div class="t-silver" style="font-size:12px;font-weight:700;letter-spacing:1.2px">${t.date} • ${t.time}</div>
+  <div style="font-size:18px;font-weight:800;color:#fff;margin-top:10px">${t.teams}</div>
+  <div class="t-silver" style="font-size:13px;margin-top:4px">${t.stadium}</div>
+  <div class="row between mt14">
+    <div class="seat-col"><span class="seat-label">PUERTA</span><span class="seat-val">${t.gate}</span></div>
+    <div class="seat-col"><span class="seat-label">FILA</span><span class="seat-val">${t.row}</span></div>
+    <div class="seat-col"><span class="seat-label">ASIENTO</span><span class="seat-val">${t.seat}</span></div>
+    <div class="seat-col" style="align-items:flex-end"><span class="seat-label">PAGO</span><span style="font-size:15px;font-weight:700;color:var(--green)">${fmt(t.pricePaid)}€</span></div>
+  </div>
+  <div class="mt20">
+    <div class="qr-wrapper">
+      <canvas id="qr-${t.id}" width="140" height="140" style="width:140px;height:140px;display:block"></canvas>
+      <div class="qr-laser"></div>
+    </div>
+    <p class="t-silver" style="font-size:12px;text-align:center;margin-top:14px">¡Presenta este código en la entrada!</p>
+  </div>
+</div>`;
+}
+
+function hashCode(s){
+  let h=0;for(let i=0;i<s.length;i++){h=(Math.imul(31,h)+s.charCodeAt(i))|0;}return h;
+}
+
+function drawQR(id, seed){
+  const canvas=document.getElementById('qr-'+id);
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const size=140, steps=8, step=size/steps;
+  ctx.fillStyle='#fff';
+  ctx.fillRect(0,0,size,size);
+
+  function drawAnchor(cx,cy){
+    ctx.fillStyle='#000';ctx.fillRect(cx,cy,step*2.5,step*2.5);
+    ctx.fillStyle='#fff';ctx.fillRect(cx+step*.4,cy+step*.4,step*1.7,step*1.7);
+    ctx.fillStyle='#000';ctx.fillRect(cx+step*.7,cy+step*.7,step*1.1,step*1.1);
+  }
+  drawAnchor(0,0);
+  drawAnchor(size-step*2.5,0);
+  drawAnchor(0,size-step*2.5);
+
+  let rnd=Math.abs(seed);
+  const next=()=>{rnd=((rnd*1664525+1013904223)&0xFFFFFFFF)>>>0;return rnd/0xFFFFFFFF;};
+  ctx.fillStyle='#000';
+  for(let r=0;r<steps;r++){
+    for(let c=0;c<steps;c++){
+      const anchor=(r<3&&c<3)||(r<3&&c>=steps-3)||(r>=steps-3&&c<3);
+      if(!anchor&&next()>.5){
+        ctx.fillRect(c*step,r*step,step*.9,step*.9);
+      }
+    }
+  }
+}
+
+/* ── RADAR MAP TAB (OpenStreetMap) ───────── */
+const BCN_CENTER=[41.387,2.165], BCN_ZOOM=13;
+
+function renderRadarTab(){
+  const sel = S.selectedMapEventId ? S.events.find(e=>e.id===S.selectedMapEventId) : null;
+  return `
+<div class="col fill" style="padding:12px 0 0">
+  <div class="row between px20 py4">
+    <div>
+      <div class="row gap8 center-y">
+        <span style="width:10px;height:10px;border-radius:50%;background:var(--green);display:inline-block"></span>
+        <span style="font-size:18px;font-weight:800;color:#fff;letter-spacing:.5px">RADAR DE CHOLLOS LIVE</span>
+      </div>
+      <p class="t-silver" style="font-size:12px;margin-top:2px">Muévete por el mapa y caza entradas con bajones de precio</p>
+    </div>
+  </div>
+  <div style="overflow-x:auto;padding:8px 20px;display:flex;gap:8px;scrollbar-width:none">
+    ${CATS.map(c=>`<button class="pill ${S.radarCategory===c?'pill-active':'pill-inactive'}" style="white-space:nowrap" onclick="setRadarCat('${c}')">${c}</button>`).join('')}
+  </div>
+  <div class="px20 pb12">
+    <div id="radar-map" style="height:calc(100dvh - 220px);min-height:380px;position:relative">
+      <div class="center" style="position:absolute;inset:0;z-index:0"><span class="t-silver" style="font-size:12px">Cargando mapa…</span></div>
+      <div id="radar-map-canvas" style="position:absolute;inset:0;z-index:1"></div>
+      <!-- HUD controls -->
+      <div class="map-hud">
+        <button class="map-hud-btn" onclick="zoomMap(1)">+</button>
+        <button class="map-hud-btn" onclick="zoomMap(-1)">−</button>
+        <button class="map-hud-btn" onclick="resetMap()">📍</button>
+      </div>
+      <!-- Live badge -->
+      <div class="map-live-badge">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse-dot .9s infinite;display:inline-block"></span>
+        <span style="font-size:9px;font-weight:800;color:#fff;letter-spacing:1px">EXPLORADOR LIVE</span>
+      </div>
+      <!-- Selected event popup -->
+      ${sel?renderMapPopup(sel):''}
+    </div>
+  </div>
+</div>`;
+}
+
+let radarMap=null;
+function osmTiles(map){
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:19,
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(map);
+}
+function pinHTML(ev,isSel,withHalo){
+  const cc=catColor(ev.category);
+  const col=isSel?'var(--orange)':cc;
+  return `<div class="lf-pin">
+    ${(isSel||withHalo)?'<div class="lf-pin-halo"></div>':''}
+    <div class="map-pin-dot" style="border-color:${col};width:${isSel?18:14}px;height:${isSel?18:14}px">
+      <div class="map-pin-dot-inner" style="background:${col};width:${isSel?6:4}px;height:${isSel?6:4}px"></div>
+    </div>
+    <div class="map-pin-price" style="border-color:${col};background:${isSel?'var(--orange)':'rgba(0,0,0,.85)'};color:${isSel?'#000':'#fff'}" data-price-id="${ev.id}">${fmt(currentPrice(ev))}€</div>
+  </div>`;
+}
+function initRadarMap(){
+  const el=document.getElementById('radar-map-canvas');
+  if(!el||typeof L==='undefined')return;
+  if(radarMap){radarMap.remove();radarMap=null;}
+  radarMap=L.map(el,{zoomControl:false}).setView(S.mapCenter||BCN_CENTER, S.mapZoom||BCN_ZOOM);
+  osmTiles(radarMap);
+  radarMap.on('moveend zoomend',()=>{
+    const c=radarMap.getCenter();
+    S.mapCenter=[c.lat,c.lng]; S.mapZoom=radarMap.getZoom();
+  });
+  const list = S.radarCategory==='Todo'?S.events:S.events.filter(e=>e.category===CAT_MAP[S.radarCategory]);
+  list.forEach(ev=>{
+    const isSel=S.selectedMapEventId===ev.id;
+    const m=L.marker([ev.lat,ev.lng],{
+      icon:L.divIcon({className:'lf-pin-wrap',html:pinHTML(ev,isSel,false),iconSize:[0,0]})
+    }).addTo(radarMap);
+    m.on('click',()=>selectMapEvent(ev.id));
+  });
+}
+
+function renderMapPopup(ev){
+  const cc=catColor(ev.category);
+  return `
+<div class="map-popup" style="background:rgba(17,17,34,.97);border:1.2px solid ${cc};border-radius:14px;padding:12px"
+  onclick="goDetail('${ev.id}')">
+  <div class="row gap12 center-y">
+    <div style="width:44px;height:44px;border-radius:12px;background:${cc}22;border:1px solid ${cc}44;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">
+      🧭
+    </div>
+    <div class="fill">
+      <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:${cc}">${catLabel(ev.category)}</div>
+      <div style="font-size:14px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.teams}</div>
+      <div class="t-silver" style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.stadium}</div>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div style="font-size:16px;font-weight:900;color:var(--orange)">${fmt(currentPrice(ev))}€</div>
+      <button class="btn btn-orange" style="margin-top:4px;height:28px;padding:0 10px;font-size:10px;font-weight:900;border-radius:6px" onclick="event.stopPropagation();goDetail('${ev.id}')">
+        IR A LA PUJA
+      </button>
+    </div>
+  </div>
+</div>`;
+}
+
+function setRadarCat(c){S.radarCategory=c;S.selectedMapEventId=null;render();}
+function selectMapEvent(id){S.selectedMapEventId=S.selectedMapEventId===id?null:id;render();}
+function zoomMap(d){ if(radarMap){ d>0?radarMap.zoomIn():radarMap.zoomOut(); } }
+function resetMap(){ if(radarMap){ S.mapCenter=null;S.mapZoom=null;radarMap.setView(BCN_CENTER,BCN_ZOOM); } }
+
+/* ═══════════════════════════════════════════
+   DETAIL SCREEN
+═══════════════════════════════════════════ */
+const DETAIL_IMGS={
+  Futbol:'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=600',
+  Basquet:'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&q=80&w=600',
+  Nit:'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=600',
+  Teatre:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&q=80&w=600',
+  EscapeRoom:'https://images.unsplash.com/photo-1519074002996-a69e7ac46a42?auto=format&fit=crop&q=80&w=600',
+  Museus:'https://images.unsplash.com/photo-1580136579312-94651dfd596d?auto=format&fit=crop&q=80&w=600',
+  LaserTag:'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&q=80&w=600',
+  Cinema:'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=80&w=600',
+  Karting:'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&q=80&w=600',
+};
+
+function renderDetail(){
+  const ev = S.events.find(e=>e.id===S.selectedEventId);
+  if(!ev) return `<div class="screen center" style="background:var(--bg)"><span class="t-white">Cargando...</span></div>`;
+  const price=currentPrice(ev);
+  const isFav=S.favorites.has(ev.id);
+  const img=DETAIL_IMGS[ev.category]||DETAIL_IMGS.Futbol;
+
+  // Nearby events
+  const nearby = getNearby(ev);
+
+  return `
+<div class="screen fade-in" style="background:var(--bg)">
+  <div class="fill scroll">
+    <!-- Backdrop -->
+    <div class="detail-backdrop">
+      <img src="${img}" alt="${ev.teams}" onerror="this.style.opacity=0">
+      <div class="detail-backdrop-overlay"></div>
+      <div class="detail-backdrop-content">
+        <div class="row between center-y">
+          <button class="back-btn" onclick="go('radar')">←</button>
+          <button class="icon-btn" onclick="toggleFav('${ev.id}')">
+            <span style="font-size:20px;color:${isFav?'var(--orange)':'#fff'}">★</span>
+          </button>
+        </div>
+        <div>
+          <span class="tag">${catLabel(ev.category)}</span>
+          <div style="font-size:22px;font-weight:800;color:#fff;margin-top:4px;line-height:1.3">${ev.teams}</div>
+          <div style="font-size:12px;font-weight:600;color:var(--silver);letter-spacing:1px;margin-top:4px">${ev.stadium.toUpperCase()}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Countdown -->
+    <div class="px20 mt16">
+      <div class="countdown-box">
+        <div style="font-size:11px;font-weight:700;color:var(--orange);letter-spacing:1.5px">¡LA VENTA CIERRA EN!</div>
+        <div class="countdown-time mt6" id="det-countdown">${countdown(ev.rem)}</div>
+      </div>
+    </div>
+
+    <!-- Price Chart -->
+    <div class="px20 mt16">
+      <div class="card" style="padding:18px">
+        <div class="row between center-y">
+          <span class="t-silver bold" style="font-size:14px">Evolución del Precio</span>
+          <span class="badge-live"><span class="live-dot"></span><span style="color:#FC8181;font-size:10px;font-weight:700">EN VIVO</span></span>
+        </div>
+        <div style="margin-top:14px;position:relative">
+          <canvas id="price-chart"></canvas>
+        </div>
+        <div class="row between mt10">
+          <span style="font-size:11px;font-weight:700;color:var(--green)">— Histórico (Real)</span>
+          <span class="t-silver" style="font-size:11px">┄ Proyección teórica</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scarcity (live, sells off slowly) -->
+    <div class="px20 mt16">
+      <div class="scarcity" id="det-scarcity" style="color:${ev.tickets<=5?'var(--red)':'var(--orange)'}">¡Quedan solo ${ev.tickets} entradas!</div>
+    </div>
+
+    <!-- Location + Nearby -->
+    ${renderLocationSection(ev, nearby)}
+
+    <!-- Current Price -->
+    <div class="mt12 col center-y" style="padding:12px 0;align-items:center">
+      <span class="t-silver bold ls" style="font-size:12px">PRECIO ACTUAL</span>
+      <div class="row gap12 center-y mt4">
+        <span class="t-silver" style="font-size:20px;text-decoration:line-through">${fmt(ev.originalPrice)}€</span>
+        <span class="t-orange xbold" style="font-size:48px" id="det-price">${fmt(price)}€</span>
+      </div>
+    </div>
+
+    <div style="height:24px"></div>
+  </div>
+
+  <!-- Sticky price bar: price never out of sight while browsing the detail -->
+  <div class="detail-cta">
+    <div class="col" style="gap:1px;min-width:0">
+      <span class="t-silver bold ls" style="font-size:9px">PRECIO ACTUAL</span>
+      <div class="row gap8 center-y">
+        <span class="detail-cta-price" data-price-id="${ev.id}">${fmt(price)}€</span>
+        <span class="detail-cta-orig">${fmt(ev.originalPrice)}€</span>
+      </div>
+      <span class="detail-cta-save"><span id="cta-save">Ahorras ${fmt(savedAmount(ev))}€</span> · cierra en <span id="cta-countdown">${countdown(ev.rem)}</span></span>
+    </div>
+    <button class="btn btn-green pulse-btn" style="height:56px;padding:0 22px;font-size:15px;font-weight:900;border-radius:14px;flex-shrink:0"
+      onclick="goSelection('${ev.id}')">
+      ¡COMPRAR!
+    </button>
+  </div>
+</div>`;
+}
+
+function getNearby(ev){
+  return S.events.filter(e=>e.id!==ev.id)
+    .map(e=>({e, d:haversine(ev.lat,ev.lng,e.lat,e.lng)}))
+    .sort((a,b)=>a.d-b.d).slice(0,3);
+}
+
+function haversine(la1,lo1,la2,lo2){
+  const R=6371;
+  const dLat=(la2-la1)*Math.PI/180;
+  const dLon=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function renderLocationSection(ev, nearby){
+  return `
+<div class="px20 mt16">
+  <div class="t-silver bold ls" style="font-size:12px">UBICACIÓN Y ALREDEDORES</div>
+  <div style="font-size:15px;font-weight:800;color:#fff;margin-top:8px">${ev.stadium.toUpperCase()} • Barcelona</div>
+
+  <!-- Mini map (OpenStreetMap) -->
+  <div style="margin-top:12px;height:200px;background:#0F0F1A;border-radius:16px;border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden">
+    <div class="center" style="position:absolute;inset:0;z-index:0"><span class="t-silver" style="font-size:12px">Cargando mapa…</span></div>
+    <div id="detail-map" style="position:absolute;inset:0;z-index:1"></div>
+    <!-- MAPS LIVE badge -->
+    <div style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);border-radius:8px;padding:4px 7px;display:flex;gap:4px;align-items:center;z-index:5">
+      <span style="width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block"></span>
+      <span style="font-size:8px;font-weight:700;color:#fff;letter-spacing:1px">MAPS LIVE</span>
+    </div>
+    <!-- Selected nearby popup -->
+    ${S.selectedNearbyId ? renderNearbyPopup(S.selectedNearbyId) : ''}
+  </div>
+
+  <!-- Nearby plans -->
+  <div class="t-silver bold" style="font-size:11px;letter-spacing:1px;margin-top:14px">PLANES EN LOS ALREDEDORES</div>
+  <div class="nearby-scroll mt8">
+    ${nearby.map(({e,d})=>renderNearbyCard(e,d)).join('')}
+  </div>
+</div>`;
+}
+
+function renderNearbyPopup(selId){
+  const plan = S.events.find(e=>e.id===selId);
+  if(!plan)return'';
+  const selEv = S.events.find(e=>e.id===S.selectedEventId);
+  const dist = selEv ? haversine(selEv.lat,selEv.lng,plan.lat,plan.lng) : 0;
+  return `
+<div style="position:absolute;bottom:10px;left:12px;right:12px;background:rgba(26,26,46,.95);border:1.2px solid var(--green);border-radius:12px;padding:10px;z-index:10;cursor:pointer"
+  onclick="goDetail('${plan.id}')">
+  <div class="row between center-y">
+    <div class="fill">
+      <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--green)">PLAN CERCANO (A ${dist.toFixed(2)} km)</div>
+      <div style="font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${plan.teams}</div>
+      <div class="t-silver" style="font-size:10px">${plan.stadium} • Baja a ${fmt(currentPrice(plan))}€</div>
+    </div>
+    <button class="btn btn-green" style="height:28px;padding:0 10px;font-size:10px;font-weight:900;border-radius:6px;margin-left:8px;flex-shrink:0"
+      onclick="event.stopPropagation();goDetail('${plan.id}')">IR A LA PUJA</button>
+  </div>
+</div>`;
+}
+
+function renderNearbyCard(ev, dist){
+  const cc=catColor(ev.category);
+  return `
+<div class="nearby-card" onclick="goDetail('${ev.id}')">
+  <div class="row gap10 center-y">
+    <div style="width:8px;height:8px;border-radius:50%;background:${cc};flex-shrink:0"></div>
+    <div class="fill">
+      <div style="font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.teams}</div>
+      <div class="t-silver" style="font-size:10px">${ev.stadium} • ${dist.toFixed(1)} km</div>
+      <div class="row between mt4">
+        <span class="t-orange" style="font-size:13px;font-weight:900">${fmt(currentPrice(ev))}€</span>
+        <span style="color:var(--green);font-size:10px;font-weight:700">VER PUJA →</span>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+function selectNearby(id){
+  S.selectedNearbyId = S.selectedNearbyId===id?null:id;
+  render();
+}
+
+let detailMap=null;
+function initDetailMap(){
+  const el=document.getElementById('detail-map');
+  if(!el||typeof L==='undefined')return;
+  if(detailMap){detailMap.remove();detailMap=null;}
+  const ev=S.events.find(e=>e.id===S.selectedEventId);
+  if(!ev)return;
+  detailMap=L.map(el,{zoomControl:false,scrollWheelZoom:false}).setView([ev.lat,ev.lng],14);
+  osmTiles(detailMap);
+  // Venue pin ("AQUÍ", pulsing halo)
+  L.marker([ev.lat,ev.lng],{icon:L.divIcon({className:'lf-pin-wrap',iconSize:[0,0],html:
+    `<div class="lf-pin"><div class="lf-pin-halo"></div>
+      <div class="map-pin-dot" style="border-color:var(--orange);width:20px;height:20px"><div class="map-pin-dot-inner" style="background:var(--orange);width:6px;height:6px"></div></div>
+      <div class="map-pin-price" style="border-color:rgba(255,107,0,.6);background:rgba(0,0,0,.85);color:var(--orange);font-weight:900">AQUÍ</div>
+    </div>`}),zIndexOffset:100}).addTo(detailMap);
+  // Nearby plan pins (selectable)
+  getNearby(ev).forEach(({e})=>{
+    const isSel=S.selectedNearbyId===e.id;
+    const cc=isSel?'var(--green)':catColor(e.category);
+    const m=L.marker([e.lat,e.lng],{icon:L.divIcon({className:'lf-pin-wrap',iconSize:[0,0],html:
+      `<div class="lf-pin">
+        <div class="map-pin-dot" style="border-color:${cc};width:15px;height:15px"><div class="map-pin-dot-inner" style="background:${cc};width:4px;height:4px"></div></div>
+        <div class="map-pin-price" style="border-color:${cc};background:${isSel?'var(--green)':'rgba(0,0,0,.85)'};color:${isSel?'#000':'#fff'}" data-price-id="${e.id}">${fmt(currentPrice(e))}€</div>
+      </div>`})}).addTo(detailMap);
+    m.on('click',()=>selectNearby(e.id));
+  });
+}
+
+/* ═══════════════════════════════════════════
+   TICKET SELECTION SCREEN
+═══════════════════════════════════════════ */
+function renderSelection(){
+  const ev = S.checkoutEvent;
+  if(!ev) return `<div class="screen center" style="background:var(--bg)"><span class="t-white">Cargando...</span></div>`;
+  const qty = S.checkoutQty;
+  const unit = S.checkoutLockedPrice;
+  const subtotal = unit*qty;
+  const fee = subtotal*.05;
+  const total = subtotal+fee;
+
+  return `
+<div class="screen fade-in" style="background:var(--bg)">
+  <div class="fill scroll px24">
+    <!-- Header -->
+    <div class="row gap12 center-y py18">
+      <button class="back-btn" onclick="go('detail',{selectedEventId:'${ev.id}'})">←</button>
+      <span style="font-size:20px;font-weight:700;color:#fff">Seleccionar Entradas</span>
+    </div>
+
+    <!-- Event card -->
+    <div class="card-sm p16">
+      <div style="font-size:16px;font-weight:800;color:#fff">${ev.teams}</div>
+      <div class="t-silver" style="font-size:13px;margin-top:4px">${ev.stadium} • ${ev.date} ${ev.time}</div>
+    </div>
+
+    <!-- Anti-speculation warning -->
+    <div style="background:rgba(255,255,255,.05);border-radius:12px;padding:16px;margin-top:24px">
+      <div class="row gap12 center-y">
+        <span style="font-size:24px">🎟</span>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#fff">Límite Antiespeculación</div>
+          <div class="t-silver" style="font-size:12px">Máximo de 2 entradas oficiales por persona para evitar la reventa y especulación.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quantity selector -->
+    <div class="mt30">
+      <div class="t-silver bold ls" style="font-size:12px">CANTIDAD</div>
+      <div class="card-sm mt12 p20 row between center-y">
+        <div>
+          <div style="font-size:16px;font-weight:700;color:#fff">Entradas de General</div>
+          <div class="t-orange bold" style="font-size:14px">${fmt(unit)}€ / ud.</div>
+        </div>
+        <div class="row gap16 center-y">
+          <button onclick="setQty(${qty-1})" class="btn" style="width:36px;height:36px;border-radius:50%;background:${qty>1?'rgba(255,255,255,.1)':'rgba(255,255,255,.02)'};font-size:20px;color:${qty>1?'#fff':'var(--silver)'}">−</button>
+          <span style="font-size:20px;font-weight:700;color:#fff;min-width:20px;text-align:center">${qty}</span>
+          <button onclick="setQty(${qty+1})" class="btn" style="width:36px;height:36px;border-radius:50%;background:${qty<2?'rgba(255,255,255,.1)':'rgba(255,255,255,.02)'};font-size:20px;color:${qty<2?'#fff':'var(--silver)'}">+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visual tickets -->
+    <div class="row gap12 mt30">
+      ${[1,2].map(i=>{
+        const active=i<=qty;
+        return `<div class="ticket-box fill" style="border-color:${active?'var(--orange)':'rgba(255,255,255,.05)'};background:${active?'rgba(255,107,0,.15)':'rgba(255,255,255,.02)'}">
+          <span style="font-size:24px;color:${active?'var(--orange)':'rgba(160,174,192,.4)'}">🎟</span>
+          <span style="font-size:13px;font-weight:700;color:${active?'#fff':'rgba(160,174,192,.4)'}">Entrada ${i}</span>
+          <span style="font-size:11px;font-weight:500;color:${active?'var(--green)':'rgba(160,174,192,.4)'}">${active?'Asignada':'Vacía'}</span>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- Breakdown -->
+    <div class="card-sm p16 mt24">
+      <div class="row between">
+        <span class="t-silver" style="font-size:13px">Subtotal (${qty} x ${fmt(unit)}€):</span>
+        <span class="t-white" style="font-size:13px">${fmt(subtotal)}€</span>
+      </div>
+      <div class="row between mt6">
+        <span class="t-silver" style="font-size:13px">Gastos de Gestión (5%):</span>
+        <span class="t-orange" style="font-size:13px">${fmt(fee)}€</span>
+      </div>
+      <div class="divider"></div>
+      <div class="row between center-y">
+        <span class="t-white bold" style="font-size:15px">Precio Estimado:</span>
+        <span style="font-size:18px;font-weight:900;color:var(--green)">${fmt(total)}€</span>
+      </div>
+    </div>
+    <div style="height:100px"></div>
+  </div>
+
+  <!-- CTA -->
+  <div style="padding:24px 20px;background:var(--bg);flex-shrink:0;padding-bottom:calc(24px + env(safe-area-inset-bottom))">
+    <button class="btn btn-green w100" style="height:64px;font-size:16px;font-weight:700;border-radius:16px"
+      onclick="go('checkout')">
+      CONTINUAR CON ${qty} ${qty===1?'ENTRADA':'ENTRADAS'}
+    </button>
+  </div>
+</div>`;
+}
+
+function setQty(q){
+  S.checkoutQty=Math.max(1,Math.min(2,q));
+  render();
+}
+
+/* ═══════════════════════════════════════════
+   CHECKOUT SCREEN
+═══════════════════════════════════════════ */
+function renderCheckout(){
+  const ev = S.checkoutEvent;
+  if(!ev) return `<div class="screen center" style="background:var(--bg)"><span class="t-white">Cargando...</span></div>`;
+  const qty=S.checkoutQty;
+  const locked=S.checkoutLockedPrice;
+  const totalOrig=ev.originalPrice*qty;
+  const totalLocked=locked*qty;
+  const fee=totalLocked*.05;
+  const base=totalLocked-fee;
+  const saved=Math.max(0,totalOrig-totalLocked);
+
+  return `
+<div class="screen fade-in" style="background:var(--bg)">
+  <div class="fill scroll px24">
+    <!-- Header -->
+    <div class="row gap12 center-y py18">
+      <button class="back-btn" onclick="go('selection')">←</button>
+      <span style="font-size:20px;font-weight:700;color:#fff">Resumen del Pedido</span>
+    </div>
+
+    <!-- Event summary -->
+    <div class="card-sm p16">
+      <div style="font-size:16px;font-weight:800;color:#fff">${ev.teams}</div>
+      <div class="t-silver" style="font-size:13px;margin-top:4px">${ev.stadium} • ${ev.date} ${ev.time}</div>
+      <div class="t-orange bold" style="font-size:13px;margin-top:6px">Cantidad: ${qty} ${qty===1?'entrada':'entradas'}</div>
+    </div>
+
+    <!-- Savings highlight -->
+    <div class="savings-box mt24">
+      <div style="font-size:14px;color:#000">Te has ahorrado</div>
+      <div style="font-size:36px;font-weight:900;color:#000">${fmt(saved)} €</div>
+      <div style="font-size:14px;color:#000">respecto a taquilla</div>
+    </div>
+
+    <!-- Breakdown -->
+    <div class="card-sm p16 mt28">
+      <div class="row between">
+        <span class="t-silver" style="font-size:14px">Entradas (${qty} x ${fmt(locked)}€):</span>
+        <span class="t-white" style="font-size:14px">${fmt(base)}€</span>
+      </div>
+      <div class="row between mt12">
+        <span class="t-silver" style="font-size:14px">Gastos de Gestión (5%):</span>
+        <span class="t-orange bold" style="font-size:14px">${fmt(fee)}€</span>
+      </div>
+      <div class="divider"></div>
+      <div class="row between center-y">
+        <span class="t-white bold" style="font-size:16px">TOTAL:</span>
+        <span style="font-size:24px;font-weight:900;color:#fff">${fmt(totalLocked)}€</span>
+      </div>
+    </div>
+
+    <!-- Fast pay -->
+    <div class="row gap12 mt30">
+      <button class="pay-btn" style="background:#fff;color:#000" onclick="confirmPay()">
+        <span>🎟</span> Pay
+      </button>
+      <button class="pay-btn" style="background:#000;color:#fff;border:1.2px solid #fff" onclick="confirmPay()">
+        <span>🎟</span> G Pay
+      </button>
+    </div>
+    <div style="height:100px"></div>
+  </div>
+
+  <!-- Confirm CTA -->
+  <div style="padding:24px 20px;background:var(--bg);flex-shrink:0;padding-bottom:calc(24px + env(safe-area-inset-bottom))">
+    <button class="btn btn-green w100" style="height:64px;font-size:17px;font-weight:700;border-radius:16px"
+      onclick="confirmPay()">
+      CONFIRMAR PAGO
+    </button>
+  </div>
+</div>`;
+}
+
+function confirmPay(){
+  const ev=S.checkoutEvent;
+  if(!ev)return;
+  const qty=S.checkoutQty;
+  const price=S.checkoutLockedPrice;
+  for(let i=0;i<qty;i++){
+    S.boughtTickets.push({
+      id:'tkt_'+Math.random().toString(36).slice(2,10),
+      eventId:ev.id,
+      teams:ev.teams+(qty>1?` (Asiento ${i+1})`:''),
+      stadium:ev.stadium,
+      date:ev.date,
+      time:ev.time,
+      pricePaid:price,
+      originalPrice:ev.originalPrice,
+      savedAmount:Math.max(0,ev.originalPrice-price),
+      gate:String(Math.floor(Math.random()*6)+1),
+      row:String(Math.floor(Math.random()*28)+1),
+      seat:String(Math.floor(Math.random()*45)+1),
+      qrToken:'TICKETCATCH_'+Math.random().toString(36).toUpperCase().slice(2),
+    });
+  }
+  S.events=S.events.map(e=>e.id===ev.id?{...e,tickets:Math.max(1,(e.tickets||2)-qty)}:e);
+  S.activeTab='Mis Entradas';
+  go('radar');
+}
+
+/* ═══════════════════════════════════════════
+   ACTIONS
+═══════════════════════════════════════════ */
+function toggleFav(id){
+  if(S.favorites.has(id)){
+    S.favorites.delete(id);
+  } else {
+    S.favorites.add(id);
+    const ev=S.events.find(e=>e.id===id);
+    if(ev){
+      addNotif(id,'★ Guardado en Favoritos ★',`Has guardado ${ev.teams} en favoritos. Te avisaremos cuando baje de precio.`,'favorite');
+    }
+  }
+  render();
+}
+
+function goDetail(id){
+  const tc=document.getElementById('tab-content');
+  if(tc) S._tabScroll=tc.scrollTop;
+  S.selectedEventId=id;
+  S.selectedNearbyId=null;
+  go('detail');
+}
+
+function goSelection(evId){
+  const ev=S.events.find(e=>e.id===evId);
+  if(!ev)return;
+  S.checkoutEvent=ev;
+  S.checkoutLockedPrice=currentPrice(ev);
+  S.checkoutQty=1;
+  go('selection');
+}
+
+function clearTickets(){
+  S.boughtTickets=[];
+  render();
+}
+
+/* ═══════════════════════════════════════════
+   CANVAS DRAWING
+═══════════════════════════════════════════ */
+function drawPriceChart(ev, t){
+  const canvas=document.getElementById('price-chart');
+  if(!canvas)return;
+  t = t||performance.now();
+  // Crisp rendering: size the bitmap to CSS px * devicePixelRatio
+  const dpr=window.devicePixelRatio||1;
+  const cw=canvas.clientWidth||canvas.parentElement.clientWidth||300;
+  const ch=canvas.clientHeight||150;
+  const bw=Math.round(cw*dpr), bh=Math.round(ch*dpr);
+  if(canvas.width!==bw||canvas.height!==bh){canvas.width=bw;canvas.height=bh;}
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const w=cw, h=ch;
+  ctx.clearRect(0,0,w,h);
+
+  // Plot area: left margin for price labels, bottom for time labels
+  const padL=40, padR=12, padT=12, padB=24;
+  const plotW=w-padL-padR, plotB=h-padB;
+  // Y scale with headroom so the line never kisses the edges
+  const span=ev.basePrice-ev.floorPrice;
+  const yMax=ev.basePrice+span*.08, yMin=ev.floorPrice-span*.08;
+  const yOf=p=>padT+(1-(p-yMin)/(yMax-yMin))*(plotB-padT);
+  const cp=currentPrice(ev);
+  // Sub-second x progress so the dot creeps forward smoothly between ticks
+  const elapsed=Math.min(ev.totalDur,(ev.totalDur-ev.rem)+((t/1000)%1));
+  const frac=elapsed/ev.totalDur;
+  const curX=padL+plotW*frac;
+  const curY=yOf(cp);
+  const yBase=yOf(ev.basePrice);
+
+  // ── Y axis: 3 price ticks (base / mid / floor) with gridlines
+  ctx.font='700 11px -apple-system,sans-serif';
+  ctx.textAlign='right';ctx.textBaseline='middle';
+  [ev.basePrice,(ev.basePrice+ev.floorPrice)/2,ev.floorPrice].forEach(p=>{
+    const y=yOf(p);
+    ctx.strokeStyle='rgba(160,174,192,.10)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(w-padR,y);ctx.stroke();
+    ctx.fillStyle='rgba(160,174,192,.75)';
+    ctx.fillText(Math.round(p)+'€',padL-7,y);
+  });
+
+  // ── X axis: real clock times across the auction window + AHORA at the dot
+  const startMs=Date.now()-elapsed*1000;
+  const fmtT=ms=>{const d=new Date(ms);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
+  ctx.textAlign='center';ctx.textBaseline='alphabetic';
+  ctx.font='600 10px -apple-system,sans-serif';
+  [0,1/3,2/3].forEach(f=>{
+    const x=padL+plotW*f;
+    if(Math.abs(x-curX)<42)return; // don't collide with AHORA
+    ctx.fillStyle='rgba(160,174,192,.65)';
+    ctx.fillText(fmtT(startMs+f*ev.totalDur*1000),x,h-8);
+  });
+  // AHORA: green, bold, underlined — anchored to the live dot
+  ctx.font='900 10px -apple-system,sans-serif';
+  const nowX=Math.min(Math.max(curX,padL+22),w-padR-24);
+  ctx.fillStyle='#00FF7F';
+  ctx.fillText('AHORA',nowX,h-8);
+  const nw=ctx.measureText('AHORA').width;
+  ctx.strokeStyle='#00FF7F';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(nowX-nw/2,h-5);ctx.lineTo(nowX+nw/2,h-5);ctx.stroke();
+
+  // ── Dashed reference line at the current price (full width, like a tracker)
+  ctx.strokeStyle='rgba(255,255,255,.45)';ctx.lineWidth=1.3;
+  ctx.setLineDash([5,6]);
+  ctx.beginPath();ctx.moveTo(padL,curY);ctx.lineTo(w-padR,curY);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── History curve: accurate endpoints with a gentle organic wobble
+  const seed=Math.abs(hashCode(ev.id));
+  const amp=(plotB-padT)*.045;
+  const pts=[];
+  const steps=48;
+  for(let i=0;i<=steps;i++){
+    const f=i/steps;
+    const x=padL+(curX-padL)*f;
+    const yLin=yBase+(curY-yBase)*f;
+    // wobble fades to zero at both endpoints so start/current prices stay exact
+    const wob=(Math.sin(f*6.5+seed%9)*.6+Math.sin(f*12.7+seed%5)*.4)*amp*Math.sin(f*Math.PI);
+    pts.push([x,Math.min(plotB-2,Math.max(padT+2,yLin+wob))]);
+  }
+
+  // Gradient fill under the curve (green fading down, like the reference)
+  const grad=ctx.createLinearGradient(0,padT,0,plotB);
+  grad.addColorStop(0,'rgba(0,255,127,.22)');grad.addColorStop(1,'rgba(0,255,127,.02)');
+  ctx.fillStyle=grad;
+  ctx.beginPath();ctx.moveTo(pts[0][0],plotB);
+  pts.forEach(p=>ctx.lineTo(p[0],p[1]));
+  ctx.lineTo(curX,plotB);ctx.closePath();ctx.fill();
+
+  // The line itself
+  ctx.strokeStyle='#00FF7F';ctx.lineWidth=3.5;ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.shadowColor='rgba(0,255,127,.45)';ctx.shadowBlur=7;
+  ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
+  pts.forEach(p=>ctx.lineTo(p[0],p[1]));
+  ctx.stroke();
+  ctx.shadowBlur=0;
+
+  // ── Projection: faint dashes drifting slowly toward the floor price
+  ctx.strokeStyle='rgba(0,255,127,.35)';ctx.lineWidth=2;
+  ctx.setLineDash([8,9]);ctx.lineDashOffset=-(t/130)%17;
+  ctx.beginPath();ctx.moveTo(curX,curY);
+  ctx.quadraticCurveTo(curX+(w-padR-curX)*.5,curY+(yOf(ev.floorPrice)-curY)*.75,w-padR,yOf(ev.floorPrice));
+  ctx.stroke();
+  ctx.setLineDash([]);ctx.lineDashOffset=0;
+
+  // ── Live dot: calm pulse
+  const pulse=(Math.sin(t/450)+1)/2;
+  ctx.fillStyle=`rgba(0,255,127,${.10+.08*pulse})`;
+  ctx.beginPath();ctx.arc(curX,curY,13+3*pulse,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#00FF7F';
+  ctx.beginPath();ctx.arc(curX,curY,5.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#0F0F1A';
+  ctx.beginPath();ctx.arc(curX,curY,2,0,Math.PI*2);ctx.fill();
+
+  // ── Current price tag riding the dashed line (flips side near the right edge)
+  const tag=fmt(cp)+'€';
+  ctx.font='900 12px -apple-system,sans-serif';
+  ctx.textAlign='left';
+  const tw=ctx.measureText(tag).width;
+  const tagX=curX+tw+20>w-padR ? curX-tw-16 : curX+12;
+  const tagY=Math.max(padT+12,curY-9);
+  ctx.fillStyle='rgba(0,0,0,.7)';
+  ctx.beginPath();
+  if(ctx.roundRect)ctx.roundRect(tagX-5,tagY-11,tw+10,16,5);else ctx.rect(tagX-5,tagY-11,tw+10,16);
+  ctx.fill();
+  ctx.fillStyle='#00FF7F';
+  ctx.fillText(tag,tagX,tagY+1);
+  ctx.textAlign='start';
+}
+
+/* Live chart loop: redraws every frame while the detail screen is open */
+let chartRAF=null;
+function startChartAnim(){
+  if(chartRAF){cancelAnimationFrame(chartRAF);chartRAF=null;}
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    const ev=S.events.find(e=>e.id===S.selectedEventId);
+    if(ev)drawPriceChart(ev);
+    return; // reduced motion: tickUpdate redraws once per second instead
+  }
+  const loop=(t)=>{
+    if(S.screen!=='detail'){chartRAF=null;return;}
+    const ev=S.events.find(e=>e.id===S.selectedEventId);
+    if(ev)drawPriceChart(ev,t);
+    chartRAF=requestAnimationFrame(loop);
+  };
+  chartRAF=requestAnimationFrame(loop);
+}
+
+/* ═══════════════════════════════════════════
+   MAIN RENDER
+═══════════════════════════════════════════ */
+function render(){
+  const root=document.getElementById('root');
+  if(!root)return;
+
+  let html='';
+  switch(S.screen){
+    case 'login':    html=renderLogin(); break;
+    case 'radar':    html=renderRadar(); break;
+    case 'detail':   html=renderDetail(); break;
+    case 'selection':html=renderSelection(); break;
+    case 'checkout': html=renderCheckout(); break;
+    default: html=renderLogin();
+  }
+  root.innerHTML=html;
+
+  // Restore list scroll position when returning from detail (state preservation)
+  if(S.screen==='radar' && S._tabScroll){
+    const tc=document.getElementById('tab-content');
+    if(tc) tc.scrollTop=S._tabScroll;
+    S._tabScroll=0;
+  }
+
+  // Post-render canvas/DOM effects
+  setTimeout(()=>{
+    if(S.screen==='detail'){
+      startChartAnim();
+      initDetailMap();
+    }
+    if(S.screen==='radar'&&S.activeTab==='Radar'){
+      initRadarMap();
+    }
+    if(S.screen==='radar'&&S.activeTab==='Mis Entradas'){
+      S.boughtTickets.forEach(t=>drawQR(t.id,hashCode(t.id)));
+    }
+  },30);
+}
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+function initialTickets(id){ return 9+(Math.abs(hashCode(id))%28); } // 9..36 seats, stable per event
+
+function init(){
+  S.events=initEvents().map(ev=>({...ev,tickets:initialTickets(ev.id)}));
+  render();
+  startTicker();
+}
+
+init();
+
+// Expose all onclick-callable functions to global scope
+const _g = {doLogin,quickRegister,setTab,setCat,toggleFav,goDetail,goSelection,
+  go,setQty,confirmPay,clearNotifs,markNotifRead,clearTickets,
+  setRadarCat,selectMapEvent,zoomMap,resetMap,selectNearby};
+Object.assign(window, _g);
+
+})();
+</script>
+</body>
+</html>
