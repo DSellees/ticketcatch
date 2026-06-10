@@ -528,20 +528,12 @@ function quickRegister(){
    LOGO
 ═══════════════════════════════════════════ */
 function renderLogo(size='small'){
-  const s=size==='large'?46:36;
-  return `
-<div style="display:flex;align-items:center;gap:12px">
-  <div style="width:${s}px;height:${s}px;background:#121226;border-radius:12px;border:2px solid var(--orange);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-    <svg width="${s*0.6}" height="${s*0.6}" viewBox="0 0 28 28">
-      <circle cx="14" cy="14" r="12" fill="none" stroke="#FF6B00" stroke-width="2"/>
-      <line x1="14" y1="14" x2="14" y2="8" stroke="#FF6B00" stroke-width="2" stroke-linecap="round"/>
-      <line x1="14" y1="14" x2="20" y2="14" stroke="#FF6B00" stroke-width="2" stroke-linecap="round"/>
-      <rect x="11" y="-1" width="6" height="3.5" rx="1" fill="#FF6B00"/>
-      <circle cx="2" cy="14" r="2.5" fill="#121226"/>
-      <circle cx="26" cy="14" r="2.5" fill="#121226"/>
-    </svg>
-  </div>
-  <span style="font-weight:900;font-size:${size==='large'?24:18}px;color:#fff;letter-spacing:1.5px">TicketCatch</span>
+  if(size==='large'){
+    return `<img src="assets/ticketcatch_logo-.png" style="width:200px;height:auto;display:block;margin:0 auto" alt="TicketCatch">`;
+  }
+  return `<div style="display:flex;align-items:center;gap:10px">
+  <img src="assets/ticketcatch_logo-.png" style="width:36px;height:29px;object-fit:contain;flex-shrink:0" alt="TC">
+  <span style="font-weight:900;font-size:18px;color:#fff;letter-spacing:1.5px">TicketCatch</span>
 </div>`;
 }
 
