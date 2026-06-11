@@ -9,21 +9,25 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --bg:#1A1A2E;--orange:#FF6B00;--green:#00FF7F;--silver:#A0AEC0;
-  --card:#151525;--divider:#2D2D44;--red:#FC8181;--white:#FFFFFF;
+  --bg:#0f0f0f;--orange:#EC5B13;--green:#00FF7F;--silver:#A0AEC0;
+  --card:#1a1a1a;--divider:#2a2a2a;--red:#FC8181;--white:rgba(255,255,255,.90);
 }
-html,body{height:100%;background:#000;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+html,body{height:100%;background:#0f0f0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 #app{
   max-width:430px;width:100%;min-height:100dvh;height:100dvh;
-  background:var(--bg);margin:0 auto;position:relative;
+  background:linear-gradient(180deg,#1a1a1a 0%,#0f0f0f 100%);margin:0 auto;position:relative;
   overflow:hidden;display:flex;flex-direction:column;
+  /* landscape notch: keep content out of the rounded corners / sensor housing */
+  padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);
 }
+/* Safe area top: pushes content below the notch / Dynamic Island */
+.safe-top{padding-top:env(safe-area-inset-top)}
 /* #root must be a flex column with min-height:0 — without it the scroll chain
    breaks and .scroll children can never overflow (page appears "frozen") */
 #root{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
 .screen{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
 .scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0;overscroll-behavior:contain}
-.scroll::-webkit-scrollbar{display:none}
+.scroll::-webkit-scrollbar,.hscroll::-webkit-scrollbar{display:none}
 
 /* ── ANIMATIONS ─────────────────────────── */
 @keyframes pulse-dot{0%,100%{opacity:.2}50%{opacity:1}}
@@ -63,7 +67,7 @@ button{touch-action:manipulation;font-family:inherit}
 }
 
 /* ── TYPOGRAPHY ─────────────────────────── */
-.t-white{color:#fff}.t-orange{color:var(--orange)}.t-green{color:var(--green)}
+.t-white{color:rgba(255,255,255,.90)}.t-orange{color:var(--orange)}.t-green{color:var(--green)}
 .t-silver{color:var(--silver)}.t-black{color:#000}.t-red{color:var(--red)}
 .bold{font-weight:700}.xbold{font-weight:900}.semi{font-weight:600}
 .ls{letter-spacing:1.5px}
@@ -110,18 +114,26 @@ button{touch-action:manipulation;font-family:inherit}
 .tag{font-size:11px;font-weight:700;letter-spacing:1px;color:var(--orange)}
 .rounded-box{border-radius:16px;padding:16px}
 
-/* ── BOTTOM NAV ─────────────────────────── */
+/* ── BOTTOM NAV (floating pill, icon-only, overlays content) ── */
 #bottom-nav{
-  background:var(--card);border-top:1px solid var(--divider);
-  border-radius:16px 16px 0 0;padding:10px 0 calc(10px + env(safe-area-inset-bottom));
-  display:flex;justify-content:space-around;align-items:center;flex-shrink:0;
+  /* z-index above Leaflet panes/controls (which go up to 1000) */
+  position:absolute;left:28px;right:28px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:1200;
+  background:rgba(26,26,26,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.07);border-radius:999px;
+  box-shadow:0 10px 30px rgba(0,0,0,.45);
+  padding:5px;display:flex;justify-content:space-between;align-items:center;
 }
-.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 10px;border:none;background:none;position:relative}
-.nav-icon{font-size:22px;transition:color .2s}
-.nav-label{font-size:11px;font-weight:700;transition:color .2s}
-.nav-item.active .nav-icon,.nav-item.active .nav-label{color:var(--orange)}
-.nav-item:not(.active) .nav-icon,.nav-item:not(.active) .nav-label{color:var(--silver)}
-.notif-badge{position:absolute;top:2px;right:6px;background:#e53e3e;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.nav-item{
+  width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;position:relative;
+  background:transparent;transition:background .25s ease,transform .15s ease-out;
+}
+.nav-icon svg{width:19px;height:19px}
+.nav-item.active{background:var(--orange);box-shadow:0 4px 16px rgba(236,91,19,.45)}
+.nav-icon{display:flex;transition:color .2s,transform .15s ease-out}
+.nav-item.active .nav-icon{color:#fff}
+.nav-item:not(.active) .nav-icon{color:var(--silver)}
+.notif-badge{position:absolute;top:4px;right:4px;background:#e53e3e;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center}
 
 /* ── EVENT CARD ─────────────────────────── */
 .event-card{border-radius:16px;border:1px solid #2D2D4F;overflow:hidden;cursor:pointer;margin-bottom:16px}
@@ -130,12 +142,12 @@ button{touch-action:manipulation;font-family:inherit}
 /* ── DETAIL ─────────────────────────────── */
 .detail-backdrop{width:100%;height:240px;position:relative;overflow:hidden}
 .detail-backdrop img{width:100%;height:100%;object-fit:cover;opacity:.6}
-.detail-backdrop-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.4),rgba(26,26,46,.6),#1A1A2E)}
-.detail-backdrop-content{position:absolute;inset:0;padding:18px;display:flex;flex-direction:column;justify-content:space-between}
+.detail-backdrop-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.4),rgba(20,20,20,.6),#0f0f0f)}
+.detail-backdrop-content{position:absolute;inset:0;padding:calc(18px + env(safe-area-inset-top)) 18px 18px;display:flex;flex-direction:column;justify-content:space-between}
 .back-btn{width:48px;height:48px;border-radius:50%;background:rgba(0,0,0,.45);border:none;cursor:pointer;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
 
 /* ── COUNTDOWN ───────────────────────────── */
-.countdown-box{background:#2D2D44;border-radius:16px;border:1px solid rgba(255,255,255,.05);padding:16px;text-align:center}
+.countdown-box{background:#242424;border-radius:16px;border:1px solid rgba(255,255,255,.05);padding:16px;text-align:center}
 .countdown-time{font-family:'Courier New',monospace;font-size:40px;font-weight:900;color:#fff;letter-spacing:2px}
 
 /* ── PRICE CHART ─────────────────────────── */
@@ -146,14 +158,16 @@ button{touch-action:manipulation;font-family:inherit}
 .qr-laser{position:absolute;left:0;right:0;height:3px;background:var(--green);animation:laser-scan 2.2s linear infinite;z-index:2}
 
 /* ── MAP (OpenStreetMap / Leaflet) ───────── */
-#radar-map{width:100%;border-radius:24px;border:1.2px solid rgba(255,255,255,.1);background:#0F0F1A;position:relative;overflow:hidden}
-.leaflet-container{background:#0F0F1A;font-family:inherit}
+#radar-map{width:100%;border-radius:24px;border:1.2px solid rgba(255,255,255,.1);background:#141414;position:relative;overflow:hidden}
+.leaflet-container{background:#141414;font-family:inherit}
 /* Dark-theme the standard OSM raster tiles (invert + desaturate) */
 .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(.85) saturate(.35) contrast(.92)}
 .leaflet-control-attribution{background:rgba(0,0,0,.55)!important;color:rgba(255,255,255,.35)!important;font-size:8px!important}
 .leaflet-control-attribution a{color:rgba(255,255,255,.5)!important}
 .lf-pin-wrap{background:none;border:none}
 .lf-pin{position:relative;cursor:pointer;transform:translate(-50%,-50%)}
+/* invisible 44px hit area so pins meet minimum touch-target size */
+.lf-pin::after{content:'';position:absolute;top:50%;left:50%;width:44px;height:44px;margin:-22px 0 0 -22px}
 /* halo centered via margins (map-pulse animates transform, so it can't be used for centering) */
 .lf-pin-halo{position:absolute;width:36px;height:36px;border-radius:50%;background:rgba(255,107,0,.35);border:1.5px solid rgba(255,107,0,.5);top:50%;left:50%;margin:-18px 0 0 -18px;animation:map-pulse 1.2s ease-out infinite;pointer-events:none}
 .map-landmark{position:absolute;background:rgba(0,0,0,.4);border-radius:4px;padding:1.5px 4px;font-size:7px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:.5px;pointer-events:none}
@@ -189,8 +203,9 @@ button{touch-action:manipulation;font-family:inherit}
 .pay-btn{flex:1;height:50px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:15px}
 
 /* ── EMPTY STATE ───────────────────────── */
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 32px;text-align:center;gap:16px}
-.empty-icon-wrap{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:36px}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px;margin:28px 20px;padding:44px 28px;background:var(--card);border:1px solid rgba(255,255,255,.06);border-radius:24px;box-shadow:0 12px 32px rgba(0,0,0,.35)}
+input[type="search"]::-webkit-search-cancel-button,input[type="search"]::-webkit-search-decoration{-webkit-appearance:none;display:none}
+.empty-icon-wrap{width:72px;height:72px;border-radius:50%;background:rgba(236,91,19,.08);border:1px solid rgba(236,91,19,.25);display:flex;align-items:center;justify-content:center;color:var(--orange)}
 
 /* ── TICKET VISUAL ──────────────────────── */
 .ticket-box{flex:1;height:100px;border-radius:12px;border:1.5px solid;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
@@ -200,12 +215,17 @@ button{touch-action:manipulation;font-family:inherit}
 
 /* ── DETAIL STICKY PRICE BAR ────────────── */
 .detail-cta{
-  flex-shrink:0;background:rgba(21,21,37,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  flex-shrink:0;background:rgba(26,26,26,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   border-top:1px solid var(--divider);box-shadow:0 -8px 24px rgba(0,0,0,.35);
   padding:12px 20px calc(12px + env(safe-area-inset-bottom));
   display:flex;align-items:center;justify-content:space-between;gap:14px;
 }
-.detail-cta-price{font-size:26px;font-weight:900;color:var(--orange);font-variant-numeric:tabular-nums;line-height:1.1}
+.detail-cta .row{flex-wrap:wrap}
+.detail-cta-price{font-size:clamp(19px,7vw,26px);font-weight:900;color:var(--orange);font-variant-numeric:tabular-nums;line-height:1.1}
+@media (max-width:360px){
+  .detail-cta{padding:10px 14px calc(10px + env(safe-area-inset-bottom));gap:10px}
+  .detail-cta .btn{height:48px!important;padding:0 14px!important;font-size:13px!important}
+}
 .detail-cta-orig{font-size:13px;color:var(--silver);text-decoration:line-through;font-variant-numeric:tabular-nums}
 .detail-cta-save{font-size:11px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums}
 
@@ -253,11 +273,54 @@ const S = {
 /* ═══════════════════════════════════════════
    EVENTS DATA
 ═══════════════════════════════════════════ */
+/* Team crest data: abbr + two brand colors (rendered as SVG shields) */
+const T={
+  FCB:{a:'FCB',c1:'#A50044',c2:'#004D98'},
+  RMA:{a:'RMA',c1:'#00529F',c2:'#FEBE10'},
+  GIR:{a:'GIR',c1:'#CD2534',c2:'#DDDDDD'},
+  ATM:{a:'ATM',c1:'#CB3524',c2:'#262E62'},
+  RCDE:{a:'RCDE',c1:'#007FC8',c2:'#DDDDDD'},
+  SEV:{a:'SEV',c1:'#D8121A',c2:'#DDDDDD'},
+  VCF:{a:'VCF',c1:'#EE3524',c2:'#FFDD00'},
+  VIL:{a:'VIL',c1:'#FFE667',c2:'#005187'},
+  ATH:{a:'ATH',c1:'#EE2523',c2:'#DDDDDD'},
+  RSO:{a:'RSO',c1:'#0067B1',c2:'#DDDDDD'},
+  BET:{a:'BET',c1:'#00954C',c2:'#DDDDDD'},
+  MLL:{a:'MLL',c1:'#E20613',c2:'#1B1B1B'},
+  CEL:{a:'CEL',c1:'#8AC3EE',c2:'#DDDDDD'},
+  GET:{a:'GET',c1:'#005999',c2:'#DDDDDD'},
+  JOV:{a:'JOV',c1:'#00703C',c2:'#1B1B1B'},
+  BAS:{a:'BAS',c1:'#002F6C',c2:'#D6001C'},
+  VBC:{a:'VBC',c1:'#F58220',c2:'#1B1B1B'},
+  UNI:{a:'UNI',c1:'#008542',c2:'#1B1B1B'},
+  MAN:{a:'MAN',c1:'#C8102E',c2:'#1B1B1B'},
+  KIE:{a:'KIE',c1:'#1B1B1B',c2:'#DDDDDD'},
+  GRA:{a:'GRA',c1:'#005BAA',c2:'#DDDDDD'},
+  ADE:{a:'ADE',c1:'#5B2D8E',c2:'#FFD700'},
+  BID:{a:'BID',c1:'#007A33',c2:'#FFD500'},
+};
+
 function initEvents(){
   return [
-    {id:'evt_el_clasico',teams:'FC Barcelona vs Real Madrid',stadium:'Spotify Camp Nou',date:'Hoy',time:'21:00h',category:'Futbol',originalPrice:180,basePrice:135,floorPrice:65,totalDur:1800,rem:1140,enViu:true,lat:41.3809,lng:2.1228},
-    {id:'evt_girona_atletico',teams:'Girona FC vs Atlético de Madrid',stadium:'Estadio Municipal de Montilivi',date:'Mañana',time:'19:30h',category:'Futbol',originalPrice:95,basePrice:80,floorPrice:45,totalDur:1800,rem:850,enViu:true,lat:41.9614,lng:2.8286},
-    {id:'evt_cl_basquet',teams:'FC Barcelona Lassa vs Real Madrid Baloncesto',stadium:'Palau Blaugrana',date:'06 de Junio',time:'18:00h',category:'Basquet',originalPrice:60,basePrice:50,floorPrice:25,totalDur:1800,rem:610,enViu:true,lat:41.3815,lng:2.1213},
+    // ── FÚTBOL ──
+    {id:'evt_el_clasico',teams:'FC Barcelona vs Real Madrid',stadium:'Spotify Camp Nou',date:'Hoy',time:'21:00h',category:'Futbol',originalPrice:180,basePrice:135,floorPrice:65,totalDur:1800,rem:1140,enViu:true,lat:41.3809,lng:2.1228,home:T.FCB,away:T.RMA},
+    {id:'evt_girona_atletico',teams:'Girona FC vs Atlético de Madrid',stadium:'Estadio Municipal de Montilivi',date:'Mañana',time:'19:30h',category:'Futbol',originalPrice:95,basePrice:80,floorPrice:45,totalDur:1800,rem:850,enViu:true,lat:41.9614,lng:2.8286,home:T.GIR,away:T.ATM},
+    {id:'evt_valencia_villarreal',teams:'Valencia CF vs Villarreal CF',stadium:'Estadio de Mestalla',date:'Mañana',time:'18:30h',category:'Futbol',originalPrice:75,basePrice:60,floorPrice:30,totalDur:1800,rem:980,enViu:true,lat:39.4745,lng:-0.3582,home:T.VCF,away:T.VIL},
+    {id:'evt_athletic_real',teams:'Athletic Club vs Real Sociedad',stadium:'San Mamés',date:'Este fin de semana',time:'21:00h',category:'Futbol',originalPrice:90,basePrice:72,floorPrice:38,totalDur:1800,rem:1320,enViu:true,lat:43.2641,lng:-2.9494,home:T.ATH,away:T.RSO},
+    {id:'evt_betis_sevilla',teams:'Real Betis vs Sevilla FC',stadium:'Estadio Benito Villamarín',date:'07 de Junio',time:'20:00h',category:'Futbol',originalPrice:85,basePrice:68,floorPrice:35,totalDur:1800,rem:560,enViu:true,lat:37.3565,lng:-5.9818,home:T.BET,away:T.SEV},
+    {id:'evt_atleti_madrid',teams:'Atlético de Madrid vs Real Madrid',stadium:'Riyadh Air Metropolitano',date:'08 de Junio',time:'21:00h',category:'Futbol',originalPrice:120,basePrice:95,floorPrice:50,totalDur:1800,rem:1480,enViu:true,lat:40.4362,lng:-3.5995,home:T.ATM,away:T.RMA},
+    {id:'evt_mallorca_espanyol',teams:'RCD Mallorca vs RCD Espanyol',stadium:'Estadi Mallorca Son Moix',date:'Mañana',time:'17:00h',category:'Futbol',originalPrice:55,basePrice:44,floorPrice:22,totalDur:1800,rem:740,enViu:true,lat:39.5904,lng:2.6300,home:T.MLL,away:T.RCDE},
+    {id:'evt_celta_getafe',teams:'RC Celta vs Getafe CF',stadium:'Estadio Abanca Balaídos',date:'Este fin de semana',time:'16:15h',category:'Futbol',originalPrice:50,basePrice:40,floorPrice:20,totalDur:1800,rem:1180,enViu:true,lat:42.2118,lng:-8.7397,home:T.CEL,away:T.GET},
+    // ── BALONCESTO ──
+    {id:'evt_cl_basquet',teams:'FC Barcelona vs Real Madrid (ACB)',stadium:'Palau Blaugrana',date:'06 de Junio',time:'18:00h',category:'Basquet',originalPrice:60,basePrice:50,floorPrice:25,totalDur:1800,rem:610,enViu:true,lat:41.3815,lng:2.1213,home:T.FCB,away:T.RMA},
+    {id:'evt_joventut_barca',teams:'Joventut Badalona vs FC Barcelona',stadium:'Palau Olímpic de Badalona',date:'Hoy',time:'19:45h',category:'Basquet',originalPrice:45,basePrice:36,floorPrice:18,totalDur:1800,rem:920,enViu:true,lat:41.4439,lng:2.2326,home:T.JOV,away:T.FCB},
+    {id:'evt_madrid_baskonia',teams:'Real Madrid vs Baskonia',stadium:'Movistar Arena',date:'Mañana',time:'20:30h',category:'Basquet',originalPrice:50,basePrice:42,floorPrice:20,totalDur:1800,rem:1260,enViu:true,lat:40.4239,lng:-3.6713,home:T.RMA,away:T.BAS},
+    {id:'evt_valencia_unicaja',teams:'Valencia Basket vs Unicaja',stadium:'Roig Arena',date:'Este fin de semana',time:'18:00h',category:'Basquet',originalPrice:40,basePrice:32,floorPrice:15,totalDur:1800,rem:480,enViu:true,lat:39.4561,lng:-0.3545,home:T.VBC,away:T.UNI},
+    {id:'evt_manresa_joventut',teams:'BAXI Manresa vs Joventut Badalona',stadium:'Nou Congost',date:'09 de Junio',time:'19:00h',category:'Basquet',originalPrice:35,basePrice:28,floorPrice:14,totalDur:1800,rem:1380,enViu:true,lat:41.7269,lng:1.8166,home:T.MAN,away:T.JOV},
+    // ── BALONMANO ──
+    {id:'evt_barca_kiel',teams:'Barça vs THW Kiel (Champions)',stadium:'Palau Blaugrana',date:'Hoy',time:'20:45h',category:'Handbol',originalPrice:40,basePrice:32,floorPrice:16,totalDur:1800,rem:1020,enViu:true,lat:41.3815,lng:2.1213,home:T.FCB,away:T.KIE},
+    {id:'evt_granollers_ademar',teams:'Fraikin BM Granollers vs Ademar León',stadium:"Palau d'Esports de Granollers",date:'Mañana',time:'19:30h',category:'Handbol',originalPrice:25,basePrice:20,floorPrice:10,totalDur:1800,rem:660,enViu:true,lat:41.6077,lng:2.2885,home:T.GRA,away:T.ADE},
+    {id:'evt_bidasoa_barca',teams:'Bidasoa Irún vs Barça',stadium:'Polideportivo Artaleku',date:'Este fin de semana',time:'18:30h',category:'Handbol',originalPrice:30,basePrice:24,floorPrice:12,totalDur:1800,rem:1440,enViu:true,lat:43.3389,lng:-1.7894,home:T.BID,away:T.FCB},
     {id:'evt_music_festival',teams:'El Clásico Music Festival',stadium:'Estadio Olímpico Lluís Companys',date:'12 de Junio',time:'22:00h',category:'Nit',originalPrice:45,basePrice:40,floorPrice:18,totalDur:1800,rem:420,enViu:true,lat:41.3638,lng:2.1526},
     {id:'evt_el_rei_lleo',teams:'El Rey León - El Musical',stadium:'Teatro Coliseum',date:'Hoy',time:'20:00h',category:'Teatre',originalPrice:85,basePrice:65,floorPrice:35,totalDur:1800,rem:1200,enViu:true,lat:41.3892,lng:2.1648},
     {id:'evt_placa_diamant',teams:'La Plaza del Diamante',stadium:'Teatro Nacional de Catalunya (TNC)',date:'Este fin de semana',time:'19:00h',category:'Teatre',originalPrice:40,basePrice:32,floorPrice:15,totalDur:1800,rem:950,enViu:true,lat:41.3992,lng:2.1856},
@@ -270,7 +333,7 @@ function initEvents(){
     {id:'evt_cine_vip',teams:'Butaca VIP + Combo Premium (Cine)',stadium:'Cinesa Diagonal Mar',date:'Hoy',time:'22:15h',category:'Cinema',originalPrice:21,basePrice:17,floorPrice:10,totalDur:1800,rem:1250,enViu:true,lat:41.4116,lng:2.2215},
     {id:'evt_karting_gp',teams:'Gran Premio de Karting (2 Mangas)',stadium:'Karting Indoor Barcelona',date:'Este fin de semana',time:'12:00h',category:'Karting',originalPrice:45,basePrice:36,floorPrice:18,totalDur:1800,rem:640,enViu:true,lat:41.3851,lng:2.1734},
     // POI events: only visible on the OpenStreetMap radar (mapOnly), fully selectable & buyable
-    {id:'poi_espanyol',teams:'RCD Espanyol vs Sevilla FC',stadium:'RCDE Stadium',date:'13 de Junio',time:'18:30h',category:'Futbol',originalPrice:70,basePrice:55,floorPrice:28,totalDur:1800,rem:990,enViu:true,lat:41.3479,lng:2.0750,mapOnly:true},
+    {id:'poi_espanyol',teams:'RCD Espanyol vs Sevilla FC',stadium:'RCDE Stadium',date:'13 de Junio',time:'18:30h',category:'Futbol',originalPrice:70,basePrice:55,floorPrice:28,totalDur:1800,rem:990,enViu:true,lat:41.3479,lng:2.0750,mapOnly:true,home:T.RCDE,away:T.SEV},
     {id:'poi_sant_jordi',teams:'Indie Night Live: Concierto Arena',stadium:'Palau Sant Jordi',date:'14 de Junio',time:'21:30h',category:'Nit',originalPrice:55,basePrice:46,floorPrice:22,totalDur:1800,rem:760,enViu:true,lat:41.3640,lng:2.1517,mapOnly:true},
     {id:'poi_camp_nou_tour',teams:'Camp Nou Tour & Museo Inmersivo',stadium:'Spotify Camp Nou',date:'Hoy',time:'17:00h',category:'Museus',originalPrice:28,basePrice:24,floorPrice:12,totalDur:1800,rem:1300,enViu:true,lat:41.3795,lng:2.1190,mapOnly:true},
     {id:'poi_sagrada',teams:'Visita Nocturna a las Torres',stadium:'Sagrada Família',date:'Mañana',time:'20:30h',category:'Museus',originalPrice:36,basePrice:30,floorPrice:15,totalDur:1800,rem:520,enViu:true,lat:41.4036,lng:2.1744,mapOnly:true},
@@ -299,16 +362,40 @@ function countdown(rem){
 }
 
 function catLabel(cat){
-  const m={Futbol:'FÚTBOL',Basquet:'BALONCESTO',Nit:'NOCHE',Teatre:'TEATRO',EscapeRoom:'ESCAPE ROOM',Museus:'MUSEOS',LaserTag:'LASER TAG',Cinema:'CINE',Karting:'KARTING'};
+  const m={Futbol:'FÚTBOL',Basquet:'BALONCESTO',Handbol:'BALONMANO',Nit:'NOCHE',Teatre:'TEATRO',EscapeRoom:'ESCAPE ROOM',Museus:'MUSEOS',LaserTag:'LASER TAG',Cinema:'CINE',Karting:'KARTING'};
   return m[cat]||cat;
 }
 function catColor(cat){
-  const m={Futbol:'#1DB954',Basquet:'#E65100',Nit:'#8E24AA',Teatre:'#F57C00',EscapeRoom:'#757575',Museus:'#0288D1',LaserTag:'#00ACC1',Cinema:'#D81B60',Karting:'#FBC02D'};
+  const m={Futbol:'#1DB954',Basquet:'#E65100',Handbol:'#3949AB',Nit:'#8E24AA',Teatre:'#F57C00',EscapeRoom:'#757575',Museus:'#0288D1',LaserTag:'#00ACC1',Cinema:'#D81B60',Karting:'#FBC02D'};
   return m[cat]||'#A0AEC0';
 }
 function catGradient(cat){
-  const m={Futbol:'#132A13',Basquet:'#2E1313',Nit:'#291334',Teatre:'#2E1B13',EscapeRoom:'#1F1B24',Museus:'#13202E',LaserTag:'#132E2E',Cinema:'#1B1B1B',Karting:'#292413'};
-  return m[cat]||'#1A1A2E';
+  const m={Futbol:'#132A13',Basquet:'#2E1313',Handbol:'#161A2E',Nit:'#291334',Teatre:'#2E1B13',EscapeRoom:'#1F1B24',Museus:'#13202E',LaserTag:'#132E2E',Cinema:'#1B1B1B',Karting:'#292413'};
+  return m[cat]||'#1a1a1a';
+}
+
+/* ── TEAM CRESTS (SVG shields, drawn with each club's colors) ── */
+function isMatch(ev){ return !!(ev.home&&ev.away); }
+let crestUid=0;
+function crestSVG(t,size=44){
+  const id='cg'+(crestUid++);
+  return `<svg width="${size}" height="${size}" viewBox="0 0 48 48" style="display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))" aria-hidden="true">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${t.c1}"/><stop offset="1" stop-color="${t.c2}"/>
+    </linearGradient></defs>
+    <path d="M24 3l17 5v15c0 10.5-7.2 17.6-17 22-9.8-4.4-17-11.5-17-22V8z" fill="url(#${id})" stroke="rgba(255,255,255,.9)" stroke-width="2.2" stroke-linejoin="round"/>
+    <text x="24" y="29" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="${t.a.length>3?10.5:12.5}" font-weight="900" fill="#fff" stroke="rgba(0,0,0,.4)" stroke-width="2.6" style="paint-order:stroke" letter-spacing=".5">${t.a}</text>
+  </svg>`;
+}
+function vsVisual(ev,size=48){
+  return `<div style="display:flex;align-items:center;gap:${Math.round(size*.22)}px">
+    ${crestSVG(ev.home,size)}
+    <span style="font-size:${Math.max(10,Math.round(size*.26))}px;font-weight:900;color:rgba(255,255,255,.8);letter-spacing:1px">VS</span>
+    ${crestSVG(ev.away,size)}
+  </div>`;
+}
+function matchBG(ev){
+  return `linear-gradient(115deg,${ev.home.c1}40 0%,rgba(15,15,15,0) 50%),linear-gradient(245deg,${ev.away.c1}40 0%,rgba(15,15,15,0) 50%),linear-gradient(180deg,#202020,#0f0f0f)`;
 }
 
 /* ═══════════════════════════════════════════
@@ -365,7 +452,7 @@ function startTicker(){
       if(rem===600||rem===300||rem===60){
         const isFav = S.favorites.has(ev.id);
         const mins = Math.floor(rem/60);
-        addNotif(ev.id,`⏳ ¡Tiempo límite de oferta!`,`Quedan solo ${mins} min para comprar entradas de ${ev.teams}${isFav?' (★ Favorito)':''}.`,'time_urgency');
+        addNotif(ev.id,`¡Tiempo límite de oferta!`,`Quedan solo ${mins} min para comprar entradas de ${ev.teams}${isFav?' (favorito)':''}.`,'time_urgency');
       }
 
       // Price drop alerts for favorites
@@ -373,7 +460,7 @@ function startTicker(){
       const last = S.lastNotifiedPrices[ev.id];
       if(last===undefined){ S.lastNotifiedPrices[ev.id]=cp; }
       else if(last-cp>=5 && S.favorites.has(ev.id)){
-        addNotif(ev.id,`📉 ¡Bajada de precio!`,`El precio de ${ev.teams} ha bajado a ${fmt(cp)}€, ¡un ahorro de ${fmt(updated.originalPrice-cp)}€!`,'price_drop');
+        addNotif(ev.id,`¡Bajada de precio!`,`El precio de ${ev.teams} ha bajado a ${fmt(cp)}€, ¡un ahorro de ${fmt(updated.originalPrice-cp)}€!`,'price_drop');
         S.lastNotifiedPrices[ev.id]=cp;
       }
 
@@ -450,11 +537,24 @@ function scheduleRender(){
 /* ═══════════════════════════════════════════
    SVG ICONS
 ═══════════════════════════════════════════ */
-const ICONS={
-  stadium:'🏟',star:'⭐',starFilled:'★',bell:'🔔',ticket:'🎟',compass:'🧭',
-  back:'←',location:'📍',email:'✉️',lock:'🔒',block:'🚫',delete:'🗑',
-  add:'+',minus:'−',qr:'▦',note:'📋',lock2:'🔐',confnum:'🎫',
+const ICO_PATHS={
+  pin:'<path d="M12 21s-7-5.1-7-11a7 7 0 0 1 14 0c0 5.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  calendar:'<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M16 3v4M8 3v4M4 11h16"/>',
+  star:'<path d="M12 17.75l-6.172 3.245 1.179-6.873-4.993-4.867 6.9-1.002L12 2l3.086 6.253 6.9 1.002-4.993 4.867 1.179 6.873z"/>',
+  bell:'<path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a7 7 0 0 1 4-6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/>',
+  ticket:'<path d="M15 5v2m0 4v2m0 4v2"/><path d="M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2"/>',
+  compass:'<circle cx="12" cy="12" r="9"/><polyline points="8 16 10 10 16 8 14 14 8 16"/>',
+  arrowLeft:'<path d="M5 12h14M5 12l6-6M5 12l6 6"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+  lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  trash:'<path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>',
+  slash:'<circle cx="12" cy="12" r="9"/><path d="M5.7 5.7l12.6 12.6"/>',
+  crosshair:'<circle cx="12" cy="12" r="7"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
 };
+function ico(name,size=18,sw=1.8,filled=false){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${filled?'currentColor':'none'}" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${ICO_PATHS[name]}</svg>`;
+}
 
 /* ═══════════════════════════════════════════
    LOGIN SCREEN
@@ -462,14 +562,13 @@ const ICONS={
 function renderLogin(){
   return `
 <div class="screen scroll fade-in" style="background:var(--bg);padding:0 24px">
-  <div style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0">
+  <div style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(40px + env(safe-area-inset-top)) 0 calc(40px + env(safe-area-inset-bottom))">
     ${renderLogo('large')}
-    <p class="t-silver mt8" style="font-size:15px;text-align:center">Inicia sesión para cazar tu oferta</p>
 
     <div class="w100 mt40">
       <label class="label">Email</label>
       <div class="input-wrap">
-        <span class="input-icon">✉️</span>
+        <span class="input-icon" style="display:flex">${ico('mail',18)}</span>
         <input id="inp-email" type="email" class="input-field" placeholder="ejemplo@correo.com"
           value="${S.loginEmail||''}" autocomplete="email">
       </div>
@@ -479,7 +578,7 @@ function renderLogin(){
     <div class="w100 mt16">
       <label class="label">Contraseña</label>
       <div class="input-wrap">
-        <span class="input-icon">🔒</span>
+        <span class="input-icon" style="display:flex">${ico('lock',18)}</span>
         <input id="inp-pwd" type="password" class="input-field" placeholder="Contraseña"
           value="${S.loginPassword||''}" autocomplete="current-password">
       </div>
@@ -529,7 +628,7 @@ function quickRegister(){
 ═══════════════════════════════════════════ */
 function renderLogo(size='small'){
   if(size==='large'){
-    return `<img src="assets/ticketcatch_logo-.png" style="width:200px;height:auto;display:block;margin:0 auto" alt="TicketCatch">`;
+    return `<img src="assets/ticketcatch_logo-.png" style="width:280px;height:auto;display:block;margin:0 auto" alt="TicketCatch">`;
   }
   return `<div style="display:flex;align-items:center;gap:10px">
   <img src="assets/ticketcatch_logo-.png" style="width:36px;height:29px;object-fit:contain;flex-shrink:0" alt="TC">
@@ -541,36 +640,33 @@ function renderLogo(size='small'){
    RADAR SCREEN (main tabs)
 ═══════════════════════════════════════════ */
 function renderRadar(){
-  const unread = S.notifications.filter(n=>!n.isRead).length;
   return `
 <div class="screen fade-in" style="background:var(--bg)">
-  <div class="fill scroll" id="tab-content">
+  <div class="fill scroll safe-top" id="tab-content" style="padding-bottom:96px">
     ${renderTabContent()}
   </div>
   <nav id="bottom-nav">
-    ${navItem('Eventos','🏟','Eventos')}
-    ${navItem('Favoritos','★','Favoritos')}
-    ${navItem('Radar','🧭','Radar')}
-    ${navItemBell(unread)}
-    ${navItem('Mis Entradas','🎟','Mis Entradas')}
+    ${navItem('Eventos','home')}
+    ${navItem('Favoritos','star')}
+    ${navItem('Radar','compass')}
+    ${navItem('Mis Entradas','ticket')}
   </nav>
 </div>`;
 }
 
-function navItem(tab, icon, label){
-  const active = S.activeTab===tab;
-  return `<button class="nav-item ${active?'active':''}" onclick="setTab('${tab}')">
-    <span class="nav-icon">${icon}</span>
-    <span class="nav-label">${label}</span>
-  </button>`;
-}
+const NAV_ICONS={
+  home:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12H3l9-9 9 9h-2"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M9 21v-6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v6"/></svg>',
+  star:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.75l-6.172 3.245 1.179-6.873-4.993-4.867 6.9-1.002L12 2l3.086 6.253 6.9 1.002-4.993 4.867 1.179 6.873z"/></svg>',
+  compass:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8 16 10 10 16 8 14 14 8 16"/></svg>',
+  ticket:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5v2m0 4v2m0 4v2"/><path d="M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2"/></svg>',
+  bell:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a7 7 0 0 1 4-6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/></svg>',
+  user:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5"/></svg>',
+};
 
-function navItemBell(unread){
-  const active = S.activeTab==='Alertas';
-  return `<button class="nav-item ${active?'active':''}" onclick="setTab('Alertas')" style="position:relative" data-nav="Alertas">
-    <span class="nav-icon">🔔</span>
-    <span class="nav-label">Alertas</span>
-    ${unread>0?`<span class="notif-badge">${unread>9?'9+':unread}</span>`:''}
+function navItem(tab, icon){
+  const active = S.activeTab===tab;
+  return `<button class="nav-item ${active?'active':''}" data-nav="${tab}" onclick="setTab('${tab}')" aria-label="${tab}">
+    <span class="nav-icon">${NAV_ICONS[icon]}</span>
   </button>`;
 }
 
@@ -591,8 +687,8 @@ function renderTabContent(){
 }
 
 /* ── EVENTOS TAB ─────────────────────────── */
-const CATS=['Todo','Fútbol','Baloncesto','Noche','Teatro','Escape Room','Museos','Laser Tag','Cine','Karting'];
-const CAT_MAP={'Fútbol':'Futbol','Baloncesto':'Basquet','Noche':'Nit','Teatro':'Teatre','Escape Room':'EscapeRoom','Museos':'Museus','Laser Tag':'LaserTag','Cine':'Cinema','Karting':'Karting'};
+const CATS=['Todo','Fútbol','Baloncesto','Balonmano','Noche','Teatro','Escape Room','Museos','Laser Tag','Cine','Karting'];
+const CAT_MAP={'Fútbol':'Futbol','Baloncesto':'Basquet','Balonmano':'Handbol','Noche':'Nit','Teatro':'Teatre','Escape Room':'EscapeRoom','Museos':'Museus','Laser Tag':'LaserTag','Cine':'Cinema','Karting':'Karting'};
 
 function getFiltered(category){
   const base=S.events.filter(e=>!e.mapOnly); // POI events live only on the map
@@ -602,22 +698,221 @@ function getFiltered(category){
 }
 
 function renderEventosTab(){
-  const list = getFiltered(S.selectedCategory);
   return `
 <div style="padding-bottom:8px">
-  <div style="text-align:center;padding:18px 0">
-    <span style="font-size:20px;font-weight:700;color:#fff">Eventos Disponibles</span>
+  <!-- Header: profile (left) + logo (center) + bell (right) -->
+  <div class="row between center-y" style="padding:18px 20px 0">
+    <button aria-label="Perfil"
+      style="width:42px;height:42px;border-radius:50%;background:#242424;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--orange)">
+      ${NAV_ICONS.user}
+    </button>
+    <img src="assets/icon_logo.png" alt="TicketCatch" style="height:34px;width:auto;object-fit:contain">
+    <button data-nav="Alertas" onclick="setTab('Alertas')" aria-label="Alertas"
+      style="position:relative;width:42px;height:42px;border-radius:50%;background:#242424;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--silver)">
+      ${NAV_ICONS.bell}
+    </button>
   </div>
-  <div style="overflow-x:auto;padding:0 16px 8px;display:flex;gap:8px;scrollbar-width:none">
-    ${CATS.map(c=>`<button class="pill ${S.selectedCategory===c?'pill-active':'pill-inactive'}" onclick="setCat('${c}')">${c}</button>`).join('')}
+
+  <!-- Search (expands inline) + category pills -->
+  <div style="overflow-x:auto;padding:14px 20px 8px;display:flex;gap:8px;scrollbar-width:none;align-items:center">
+    ${S.searchOpen?`
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;width:230px;height:42px;border-radius:999px;border:1.2px solid var(--orange);background:var(--card);padding:0 8px 0 12px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;cursor:pointer" onclick="toggleSearch()"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
+      <input id="home-search" type="search" placeholder="Busca evento..."
+        value="${(S.searchQuery||'').replace(/"/g,'&quot;')}" oninput="setSearchQ(this.value)"
+        style="flex:1;min-width:0;background:transparent;border:none;color:rgba(255,255,255,.9);font-size:14px;outline:none;-webkit-appearance:none">
+      <span onclick="toggleSearch()" style="cursor:pointer;color:var(--silver);padding:4px;display:flex">${ico('x',16,2)}</span>
+    </div>`:`
+    <button onclick="toggleSearch()" aria-label="Buscar"
+      style="width:42px;height:42px;border-radius:50%;flex-shrink:0;background:transparent;border:1.2px solid var(--divider);display:flex;align-items:center;justify-content:center;cursor:pointer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
+    </button>`}
+    ${CATS.map(c=>`<button class="pill ${S.selectedCategory===c?'pill-active':'pill-inactive'}" style="white-space:nowrap;flex-shrink:0" onclick="setCat('${c}')">${c}</button>`).join('')}
   </div>
-  <div class="px16 mt16">
-    ${list.length===0
-      ?`<div class="empty-state"><span style="font-size:48px">🚫</span><p class="t-silver" style="font-size:15px">Aún no hay eventos para esta categoría</p></div>`
-      :list.map(ev=>renderEventCard(ev)).join('')
-    }
+
+  <div id="home-sections">${renderHomeSections()}</div>
+</div>`;
+}
+
+function sectionHeader(title, key){
+  const open=S.viewAll===key;
+  return `
+  <div class="row between center-y" style="padding:28px 20px 12px">
+    <span style="font-size:21px;font-weight:800;color:rgba(255,255,255,.92)">${title}</span>
+    <button onclick="toggleViewAll('${key}')"
+      style="background:none;border:none;cursor:pointer;color:var(--orange);font-size:12.5px;font-weight:700;padding:4px 0">
+      ${open?'Ver menos':'Ver todo'}
+    </button>
+  </div>`;
+}
+
+function renderHomeSections(){
+  let list = getFiltered(S.selectedCategory);
+  const q=(S.searchQuery||'').trim().toLowerCase();
+  if(q) list=list.filter(e=>e.teams.toLowerCase().includes(q)||e.stadium.toLowerCase().includes(q));
+  if(list.length===0){
+    return `<div class="empty-state"><div class="empty-icon-wrap">${ico('slash',32,1.6)}</div><p class="t-silver" style="font-size:15px">No hay eventos que coincidan</p></div>`;
+  }
+  // Disjoint sections: populares = best discounts, próximos = the rest by closing time
+  const byDiscount=[...list].sort((a,b)=>(savedAmount(b)/b.originalPrice)-(savedAmount(a)/a.originalPrice));
+  const populares=byDiscount.slice(0, Math.min(5, Math.ceil(list.length/2)));
+  const popIds=new Set(populares.map(e=>e.id));
+  const proximos=list.filter(e=>!popIds.has(e.id)).sort((a,b)=>a.rem-b.rem);
+
+  let html='';
+  if(proximos.length>0){
+    html+=sectionHeader('Próximos eventos','proximos');
+    html+= S.viewAll==='proximos'
+      ?`<div style="display:flex;flex-direction:column;gap:12px;padding:2px 20px 10px">${proximos.map(ev=>renderMiniCard(ev,true)).join('')}</div>`
+      :`<div class="hscroll" style="display:flex;gap:12px;overflow-x:auto;padding:2px 20px 10px;scrollbar-width:none">${proximos.map(ev=>renderMiniCard(ev)).join('')}</div>`;
+  }
+  if(populares.length>0){
+    html+=sectionHeader('Más populares','populares');
+    html+= S.viewAll==='populares'
+      ?`<div style="display:flex;flex-direction:column;gap:12px;padding:2px 20px 10px">${populares.map(ev=>renderBigCard(ev,true)).join('')}</div>`
+      :`<div class="hscroll" style="display:flex;gap:12px;overflow-x:auto;padding:2px 20px 10px;scrollbar-width:none">${populares.map(ev=>renderBigCard(ev)).join('')}</div>`;
+  }
+
+  // Cerca de ti: interactive mini-map with all event pins
+  html+=`
+  <div class="row between center-y" style="padding:28px 20px 12px">
+    <span style="font-size:21px;font-weight:800;color:rgba(255,255,255,.92)">Cerca de ti</span>
+    <button onclick="setTab('Radar')"
+      style="background:none;border:none;cursor:pointer;color:var(--orange);font-size:12.5px;font-weight:700;padding:4px 0">
+      Abrir radar
+    </button>
+  </div>
+  <div style="padding:2px 20px 10px">
+    <div style="position:relative;border-radius:24px;overflow:hidden;border:1px solid var(--divider)">
+      <div id="home-map" style="height:240px"></div>
+      <div id="home-map-overlay" style="position:absolute;left:10px;right:10px;bottom:10px;z-index:1100;display:none"></div>
+    </div>
+  </div>`;
+  return html;
+}
+
+let homeMap=null;
+function initHomeMap(){
+  const el=document.getElementById('home-map');
+  if(!el||typeof L==='undefined')return;
+  if(homeMap){homeMap.remove();homeMap=null;}
+  homeMap=L.map(el,{zoomControl:false});
+  // Includes map-only POI events too — same universe as the radar
+  const list = S.selectedCategory==='Todo'?S.events:S.events.filter(e=>e.category===CAT_MAP[S.selectedCategory]);
+  // "Cerca de ti" = city-level view: fit only events near the user (<60 km),
+  // so pins stay big enough to tap. Far events remain reachable by panning.
+  const near=list.filter(e=>haversine(BCN_CENTER[0],BCN_CENTER[1],e.lat,e.lng)<60);
+  const fitList=near.length?near:list;
+  let fitLock=true;
+  if(S.homeMapCenter) homeMap.setView(S.homeMapCenter, S.homeMapZoom||BCN_ZOOM);
+  else if(fitList.length) homeMap.fitBounds(L.latLngBounds(fitList.map(e=>[e.lat,e.lng])).pad(0.15),{maxZoom:13,animate:false});
+  else homeMap.setView(BCN_CENTER, BCN_ZOOM);
+  osmTiles(homeMap);
+  setTimeout(()=>{fitLock=false},400);
+  homeMap.on('moveend zoomend',()=>{
+    if(fitLock)return; // ignore the programmatic initial fit; only remember user pans/zooms
+    const c=homeMap.getCenter();
+    S.homeMapCenter=[c.lat,c.lng]; S.homeMapZoom=homeMap.getZoom();
+  });
+  list.forEach(ev=>{
+    const m=L.marker([ev.lat,ev.lng],{
+      icon:L.divIcon({className:'lf-pin-wrap',html:pinHTML(ev,false,false),iconSize:[0,0]})
+    }).addTo(homeMap);
+    m.on('click',()=>homeMapPick(ev.id));
+  });
+}
+
+function homeMapPick(id){
+  const ev=S.events.find(e=>e.id===id);
+  const ov=document.getElementById('home-map-overlay');
+  if(!ev||!ov)return;
+  if(S.homeMapSel===id){ S.homeMapSel=null; ov.style.display='none'; return; }
+  S.homeMapSel=id;
+  ov.style.display='block';
+  ov.innerHTML=`
+  <div onclick="goDetail('${ev.id}')"
+    style="background:rgba(15,15,15,.92);backdrop-filter:blur(10px);border:1.2px solid var(--orange);border-radius:14px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:10px">
+    <div class="col fill" style="gap:2px;min-width:0">
+      <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.teams}</span>
+      <span class="t-silver" style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.stadium}</span>
+    </div>
+    <span class="col" style="align-items:flex-end;gap:1px;flex-shrink:0">
+      <span class="t-silver" style="font-size:11px;text-decoration:line-through">${fmt(ev.originalPrice)}€</span>
+      <span class="t-orange" style="font-size:15px;font-weight:900" data-price-id="${ev.id}">${fmt(currentPrice(ev))}€</span>
+    </span>
+    <span style="color:var(--orange);font-size:18px;flex-shrink:0">›</span>
+  </div>`;
+}
+
+function toggleViewAll(key){
+  S.viewAll = S.viewAll===key ? null : key;
+  const c=document.getElementById('home-sections');
+  if(c){ c.innerHTML=renderHomeSections(); initHomeMap(); }
+}
+
+function renderMiniCard(ev, full){
+  const img=DETAIL_IMGS[ev.category]||DETAIL_IMGS.Futbol;
+  const w=full?'width:100%':'min-width:285px;max-width:285px';
+  const thumb=isMatch(ev)
+    ?`<div style="width:66px;height:66px;border-radius:12px;flex-shrink:0;background:${matchBG(ev)};display:flex;align-items:center;justify-content:center;gap:2px;border:1px solid rgba(255,255,255,.07)">${crestSVG(ev.home,28)}${crestSVG(ev.away,28)}</div>`
+    :`<div style="width:66px;height:66px;border-radius:12px;flex-shrink:0;background-image:url('${img}');background-size:cover;background-position:center"></div>`;
+  return `
+<div onclick="goDetail('${ev.id}')"
+  style="${w};background:var(--card);border:1px solid rgba(255,255,255,.05);border-radius:16px;padding:11px;display:flex;gap:12px;align-items:center;cursor:pointer">
+  ${thumb}
+  <div class="col" style="gap:3px;min-width:0">
+    <span style="font-size:14.5px;font-weight:700;color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.teams}</span>
+    <span class="t-silver" style="font-size:12.5px">${ev.date} • ${ev.time}</span>
+    <span class="row gap8 center-y">
+      <span class="t-silver" style="font-size:12px;text-decoration:line-through">${fmt(ev.originalPrice)}€</span>
+      <span class="t-orange" style="font-size:14.5px;font-weight:800" data-price-id="${ev.id}">${fmt(currentPrice(ev))}€</span>
+    </span>
   </div>
 </div>`;
+}
+
+function renderBigCard(ev, full){
+  const img=DETAIL_IMGS[ev.category]||DETAIL_IMGS.Futbol;
+  const isFav=S.favorites.has(ev.id);
+  const w=full?'width:100%':'min-width:285px;max-width:285px';
+  const isM=isMatch(ev);
+  const bg=isM
+    ?`background-image:${matchBG(ev)};border:1px solid rgba(255,255,255,.07)`
+    :`background-image:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(0,0,0,.35)),url('${img}')`;
+  return `
+<div onclick="goDetail('${ev.id}')"
+  style="${w};height:300px;border-radius:24px;position:relative;overflow:hidden;cursor:pointer;${bg};background-size:cover;background-position:center">
+  ${isM?`<div style="position:absolute;left:0;right:0;top:0;bottom:96px;display:flex;align-items:center;justify-content:center">${vsVisual(ev,58)}</div>`:''}
+  <span onclick="event.stopPropagation();toggleFav('${ev.id}')"
+    style="position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;background:rgba(15,15,15,.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;color:${isFav?'var(--orange)':'rgba(255,255,255,.75)'}">${ico('star',17,1.8,isFav)}</span>
+  ${ev.enViu?`<span style="position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:6px;background:rgba(15,15,15,.55);backdrop-filter:blur(6px);border-radius:999px;padding:5px 11px"><span class="live-dot"></span><span style="color:#ff6b6b;font-size:10.5px;font-weight:800;letter-spacing:.5px">EN VIVO</span></span>`:''}
+  <div style="position:absolute;left:10px;right:10px;bottom:10px;background:rgba(12,12,12,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;padding:14px 16px">
+    <div style="font-size:17px;font-weight:800;color:rgba(255,255,255,.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.teams}</div>
+    <div class="row between center-y" style="margin-top:9px">
+      <span class="row center-y" style="gap:6px;color:var(--silver);font-size:13px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M16 3v4M8 3v4M4 11h16"/></svg>
+        ${ev.date}
+      </span>
+      <span class="row gap8 center-y">
+        <span class="t-silver" style="font-size:13px;text-decoration:line-through">${fmt(ev.originalPrice)}€</span>
+        <span class="t-orange" style="font-size:17px;font-weight:900" data-price-id="${ev.id}">${fmt(currentPrice(ev))}€</span>
+      </span>
+    </div>
+  </div>
+</div>`;
+}
+
+function toggleSearch(){
+  S.searchOpen=!S.searchOpen;
+  if(!S.searchOpen) S.searchQuery='';
+  render();
+  if(S.searchOpen){ const i=document.getElementById('home-search'); if(i) i.focus(); }
+}
+
+function setSearchQ(v){
+  S.searchQuery=v;
+  const c=document.getElementById('home-sections');
+  if(c){ c.innerHTML=renderHomeSections(); initHomeMap(); }
 }
 
 function setCat(c){
@@ -633,7 +928,7 @@ function renderEventCard(ev){
   const img=DETAIL_IMGS[ev.category]||DETAIL_IMGS.Futbol;
   return `
 <div class="event-card" onclick="goDetail('${ev.id}')"
-  style="background-image:linear-gradient(125deg,rgba(21,21,37,.96) 38%,${grad}cc 75%,${grad}99),url('${img}');background-size:cover;background-position:center">
+  style="background-image:linear-gradient(125deg,rgba(20,20,20,.96) 38%,${grad}cc 75%,${grad}99),url('${img}');background-size:cover;background-position:center">
   <div class="event-card-body">
     <div class="row between">
       <div>
@@ -642,12 +937,13 @@ function renderEventCard(ev){
       <div class="row gap12">
         <span class="tag">${cat}</span>
         <span class="star" onclick="event.stopPropagation();toggleFav('${ev.id}')"
-          style="color:${isFav?'var(--orange)':'rgba(160,174,192,.35)'}">★</span>
+          style="display:flex;color:${isFav?'var(--orange)':'rgba(160,174,192,.35)'}">${ico('star',20,1.8,isFav)}</span>
       </div>
     </div>
+    ${isMatch(ev)?`<div class="mt12">${vsVisual(ev,34)}</div>`:''}
     <div class="mt12" style="font-size:16px;font-weight:800;color:#fff;line-height:1.3">${ev.teams}</div>
-    <div class="row gap8 mt6"><span style="font-size:14px">🏟</span><span class="t-silver" style="font-size:13px">${ev.stadium}</span></div>
-    <div class="row gap8 mt4"><span style="font-size:13px">📋</span><span class="t-silver" style="font-size:13px">${ev.date} • ${ev.time}</span></div>
+    <div class="row gap8 mt6"><span style="display:flex;color:var(--silver)">${ico('pin',14)}</span><span class="t-silver" style="font-size:13px">${ev.stadium}</span></div>
+    <div class="row gap8 mt4"><span style="display:flex;color:var(--silver)">${ico('calendar',14)}</span><span class="t-silver" style="font-size:13px">${ev.date} • ${ev.time}</span></div>
     <div class="row" style="justify-content:flex-end;margin-top:16px;align-items:flex-end">
       <div style="text-align:right">
         <div class="t-silver" style="font-size:11px">Desde</div>
@@ -667,11 +963,11 @@ function renderFavoritosTab(){
   return `
 <div>
   <div style="text-align:center;padding:18px 0">
-    <span style="font-size:20px;font-weight:700;color:#fff">Mis Favoritos ★</span>
+    <span style="font-size:20px;font-weight:700;color:#fff">Mis Favoritos</span>
   </div>
   ${favs.length===0
     ?`<div class="empty-state">
-        <div class="empty-icon-wrap">★</div>
+        <div class="empty-icon-wrap">${ico('star',32,1.6)}</div>
         <p style="font-size:18px;font-weight:700;color:#fff">Lista de favoritos vacía</p>
         <p class="t-silver" style="font-size:14px">Toca el icono de estrella de cualquier evento para recibir alertas automáticas de bajadas de precio o urgencia de tiempo.</p>
       </div>`
@@ -689,14 +985,14 @@ function renderAlertasTab(){
     <span style="font-size:20px;font-weight:700;color:#fff">Centro de Alertas Live</span>
     ${notifs.length>0
       ?`<button class="chip" style="background:rgba(229,62,62,.12);border:1px solid rgba(229,62,62,.25);color:#FC8181" onclick="clearNotifs()">
-          🗑 Limpiar todo
+          <span style="display:flex">${ico('trash',13,2)}</span> Limpiar todo
         </button>`
       :''
     }
   </div>
   ${notifs.length===0
     ?`<div class="empty-state">
-        <div class="empty-icon-wrap">🔔</div>
+        <div class="empty-icon-wrap">${ico('bell',32,1.6)}</div>
         <p style="font-size:18px;font-weight:700;color:#fff">Sin alertas pendientes</p>
         <p class="t-silver" style="font-size:14px">Tus alertas sobre disminuciones de precio de tus favoritos u ofertas limitadas se mostrarán en tiempo real.</p>
       </div>`
@@ -709,13 +1005,13 @@ function renderNotifItem(n){
   const color = n.type==='price_drop'?'var(--orange)':n.type==='time_urgency'?'#FFCC00':'var(--green)';
   const borderColor = n.isRead?'rgba(255,255,255,.05)':color.replace(')',', .35)').replace('rgba','rgba').replace('var(--orange)','rgba(255,107,0,.35)').replace('#FFCC00','rgba(255,204,0,.35)').replace('var(--green)','rgba(0,255,127,.35)');
   return `
-<div class="notif-item" style="background:${n.isRead?'rgba(21,21,37,.6)':'var(--card)'};border-color:${n.isRead?'rgba(255,255,255,.05)':color}"
+<div class="notif-item" style="background:${n.isRead?'rgba(20,20,20,.6)':'var(--card)'};border-color:${n.isRead?'rgba(255,255,255,.05)':color}"
   onclick="markNotifRead('${n.id}')">
   <div class="row p14 gap14">
     <div style="width:40px;height:40px;border-radius:50%;background:${color.replace(')',', .15)').replace('var(--orange)','rgba(255,107,0,.15)').replace('#FFCC00','rgba(255,204,0,.15)').replace('var(--green)','rgba(0,255,127,.15)')};
       border:1px solid ${color.replace(')',', .3)').replace('var(--orange)','rgba(255,107,0,.3)').replace('#FFCC00','rgba(255,204,0,.3)').replace('var(--green)','rgba(0,255,127,.3)')};
-      display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">
-      ${n.type==='favorite'?'★':'🔔'}
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${color}">
+      ${n.type==='favorite'?ico('star',18,1.8,true):ico('bell',18)}
     </div>
     <div class="fill">
       <div class="row between">
@@ -748,7 +1044,7 @@ function renderWalletTab(){
   </div>
   ${tickets.length===0
     ?`<div class="empty-state">
-        <span style="font-size:72px">🎟</span>
+        <div class="empty-icon-wrap">${ico('ticket',34,1.5)}</div>
         <p style="font-size:16px;font-weight:700;color:var(--silver)">Aún no tienes ninguna entrada guardada.</p>
         <p class="t-silver" style="font-size:13px">¡Participa en el Chicken Game desde el radar de eventos para conseguir un descuento brutal!</p>
         <button class="btn btn-orange" style="height:44px;padding:0 24px;font-size:14px;margin-top:8px" onclick="setTab('Eventos')">Ver Radar de Eventos</button>
@@ -774,7 +1070,7 @@ function renderTicketCard(t){
     <div class="seat-col"><span class="seat-label">PUERTA</span><span class="seat-val">${t.gate}</span></div>
     <div class="seat-col"><span class="seat-label">FILA</span><span class="seat-val">${t.row}</span></div>
     <div class="seat-col"><span class="seat-label">ASIENTO</span><span class="seat-val">${t.seat}</span></div>
-    <div class="seat-col" style="align-items:flex-end"><span class="seat-label">PAGO</span><span style="font-size:15px;font-weight:700;color:var(--green)">${fmt(t.pricePaid)}€</span></div>
+    <div class="seat-col" style="align-items:flex-end"><span class="seat-label">PAGO</span><span class="row gap4 center-y"><s class="t-silver" style="font-size:11px">${fmt(t.originalPrice)}€</s><span style="font-size:15px;font-weight:700;color:var(--green)">${fmt(t.pricePaid)}€</span></span></div>
   </div>
   <div class="mt20">
     <div class="qr-wrapper">
@@ -847,7 +1143,7 @@ function renderRadarTab(){
       <div class="map-hud">
         <button class="map-hud-btn" onclick="zoomMap(1)">+</button>
         <button class="map-hud-btn" onclick="zoomMap(-1)">−</button>
-        <button class="map-hud-btn" onclick="resetMap()">📍</button>
+        <button class="map-hud-btn" onclick="resetMap()" style="display:flex;align-items:center;justify-content:center">${ico('crosshair',16,2)}</button>
       </div>
       <!-- Live badge -->
       <div class="map-live-badge">
@@ -876,7 +1172,9 @@ function pinHTML(ev,isSel,withHalo){
     <div class="map-pin-dot" style="border-color:${col};width:${isSel?18:14}px;height:${isSel?18:14}px">
       <div class="map-pin-dot-inner" style="background:${col};width:${isSel?6:4}px;height:${isSel?6:4}px"></div>
     </div>
-    <div class="map-pin-price" style="border-color:${col};background:${isSel?'var(--orange)':'rgba(0,0,0,.85)'};color:${isSel?'#000':'#fff'}" data-price-id="${ev.id}">${fmt(currentPrice(ev))}€</div>
+    <div class="map-pin-price" style="border-color:${col};background:${isSel?'var(--orange)':'rgba(0,0,0,.85)'};color:${isSel?'#000':'#fff'}">
+      <s style="opacity:.55;font-size:8px;margin-right:3px">${fmt(ev.originalPrice)}€</s><span data-price-id="${ev.id}">${fmt(currentPrice(ev))}€</span>
+    </div>
   </div>`;
 }
 function initRadarMap(){
@@ -905,8 +1203,8 @@ function renderMapPopup(ev){
 <div class="map-popup" style="background:rgba(17,17,34,.97);border:1.2px solid ${cc};border-radius:14px;padding:12px"
   onclick="goDetail('${ev.id}')">
   <div class="row gap12 center-y">
-    <div style="width:44px;height:44px;border-radius:12px;background:${cc}22;border:1px solid ${cc}44;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">
-      🧭
+    <div style="width:44px;height:44px;border-radius:12px;background:${cc}22;border:1px solid ${cc}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${cc}">
+      ${ico('compass',22)}
     </div>
     <div class="fill">
       <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:${cc}">${catLabel(ev.category)}</div>
@@ -914,7 +1212,8 @@ function renderMapPopup(ev){
       <div class="t-silver" style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.stadium}</div>
     </div>
     <div style="text-align:right;flex-shrink:0">
-      <div style="font-size:16px;font-weight:900;color:var(--orange)">${fmt(currentPrice(ev))}€</div>
+      <div class="t-silver" style="font-size:11px;text-decoration:line-through">${fmt(ev.originalPrice)}€</div>
+      <div style="font-size:16px;font-weight:900;color:var(--orange)" data-price-id="${ev.id}">${fmt(currentPrice(ev))}€</div>
       <button class="btn btn-orange" style="margin-top:4px;height:28px;padding:0 10px;font-size:10px;font-weight:900;border-radius:6px" onclick="event.stopPropagation();goDetail('${ev.id}')">
         IR A LA PUJA
       </button>
@@ -934,6 +1233,7 @@ function resetMap(){ if(radarMap){ S.mapCenter=null;S.mapZoom=null;radarMap.setV
 const DETAIL_IMGS={
   Futbol:'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=600',
   Basquet:'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&q=80&w=600',
+  Handbol:'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&q=80&w=600',
   Nit:'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=600',
   Teatre:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&q=80&w=600',
   EscapeRoom:'https://images.unsplash.com/photo-1519074002996-a69e7ac46a42?auto=format&fit=crop&q=80&w=600',
@@ -958,13 +1258,16 @@ function renderDetail(){
   <div class="fill scroll">
     <!-- Backdrop -->
     <div class="detail-backdrop">
-      <img src="${img}" alt="${ev.teams}" onerror="this.style.opacity=0">
+      ${isMatch(ev)
+        ?`<div style="width:100%;height:100%;background:${matchBG(ev)}"></div>`
+        :`<img src="${img}" alt="${ev.teams}" onerror="this.style.opacity=0">`}
       <div class="detail-backdrop-overlay"></div>
+      ${isMatch(ev)?`<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-bottom:52px">${vsVisual(ev,68)}</div>`:''}
       <div class="detail-backdrop-content">
         <div class="row between center-y">
-          <button class="back-btn" onclick="go('radar')">←</button>
+          <button class="back-btn" onclick="go('radar')" style="display:flex;align-items:center;justify-content:center">${ico('arrowLeft',20,2)}</button>
           <button class="icon-btn" onclick="toggleFav('${ev.id}')">
-            <span style="font-size:20px;color:${isFav?'var(--orange)':'#fff'}">★</span>
+            <span style="display:flex;color:${isFav?'var(--orange)':'#fff'}">${ico('star',20,1.8,isFav)}</span>
           </button>
         </div>
         <div>
@@ -1008,15 +1311,6 @@ function renderDetail(){
     <!-- Location + Nearby -->
     ${renderLocationSection(ev, nearby)}
 
-    <!-- Current Price -->
-    <div class="mt12 col center-y" style="padding:12px 0;align-items:center">
-      <span class="t-silver bold ls" style="font-size:12px">PRECIO ACTUAL</span>
-      <div class="row gap12 center-y mt4">
-        <span class="t-silver" style="font-size:20px;text-decoration:line-through">${fmt(ev.originalPrice)}€</span>
-        <span class="t-orange xbold" style="font-size:48px" id="det-price">${fmt(price)}€</span>
-      </div>
-    </div>
-
     <div style="height:24px"></div>
   </div>
 
@@ -1059,7 +1353,7 @@ function renderLocationSection(ev, nearby){
   <div style="font-size:15px;font-weight:800;color:#fff;margin-top:8px">${ev.stadium.toUpperCase()} • Barcelona</div>
 
   <!-- Mini map (OpenStreetMap) -->
-  <div style="margin-top:12px;height:200px;background:#0F0F1A;border-radius:16px;border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden">
+  <div style="margin-top:12px;height:200px;background:#141414;border-radius:16px;border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden">
     <div class="center" style="position:absolute;inset:0;z-index:0"><span class="t-silver" style="font-size:12px">Cargando mapa…</span></div>
     <div id="detail-map" style="position:absolute;inset:0;z-index:1"></div>
     <!-- MAPS LIVE badge -->
@@ -1070,12 +1364,6 @@ function renderLocationSection(ev, nearby){
     <!-- Selected nearby popup -->
     ${S.selectedNearbyId ? renderNearbyPopup(S.selectedNearbyId) : ''}
   </div>
-
-  <!-- Nearby plans -->
-  <div class="t-silver bold" style="font-size:11px;letter-spacing:1px;margin-top:14px">PLANES EN LOS ALREDEDORES</div>
-  <div class="nearby-scroll mt8">
-    ${nearby.map(({e,d})=>renderNearbyCard(e,d)).join('')}
-  </div>
 </div>`;
 }
 
@@ -1085,13 +1373,13 @@ function renderNearbyPopup(selId){
   const selEv = S.events.find(e=>e.id===S.selectedEventId);
   const dist = selEv ? haversine(selEv.lat,selEv.lng,plan.lat,plan.lng) : 0;
   return `
-<div style="position:absolute;bottom:10px;left:12px;right:12px;background:rgba(26,26,46,.95);border:1.2px solid var(--green);border-radius:12px;padding:10px;z-index:10;cursor:pointer"
+<div style="position:absolute;bottom:10px;left:12px;right:12px;background:rgba(20,20,20,.95);border:1.2px solid var(--green);border-radius:12px;padding:10px;z-index:10;cursor:pointer"
   onclick="goDetail('${plan.id}')">
   <div class="row between center-y">
     <div class="fill">
       <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--green)">PLAN CERCANO (A ${dist.toFixed(2)} km)</div>
       <div style="font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${plan.teams}</div>
-      <div class="t-silver" style="font-size:10px">${plan.stadium} • Baja a ${fmt(currentPrice(plan))}€</div>
+      <div class="t-silver" style="font-size:10px">${plan.stadium} • Antes <s>${fmt(plan.originalPrice)}€</s>, baja a ${fmt(currentPrice(plan))}€</div>
     </div>
     <button class="btn btn-green" style="height:28px;padding:0 10px;font-size:10px;font-weight:900;border-radius:6px;margin-left:8px;flex-shrink:0"
       onclick="event.stopPropagation();goDetail('${plan.id}')">IR A LA PUJA</button>
@@ -1109,7 +1397,10 @@ function renderNearbyCard(ev, dist){
       <div style="font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.teams}</div>
       <div class="t-silver" style="font-size:10px">${ev.stadium} • ${dist.toFixed(1)} km</div>
       <div class="row between mt4">
-        <span class="t-orange" style="font-size:13px;font-weight:900">${fmt(currentPrice(ev))}€</span>
+        <span class="row gap4 center-y">
+          <span class="t-silver" style="font-size:10px;text-decoration:line-through">${fmt(ev.originalPrice)}€</span>
+          <span class="t-orange" style="font-size:13px;font-weight:900" data-price-id="${ev.id}">${fmt(currentPrice(ev))}€</span>
+        </span>
         <span style="color:var(--green);font-size:10px;font-weight:700">VER PUJA →</span>
       </div>
     </div>
@@ -1144,7 +1435,7 @@ function initDetailMap(){
     const m=L.marker([e.lat,e.lng],{icon:L.divIcon({className:'lf-pin-wrap',iconSize:[0,0],html:
       `<div class="lf-pin">
         <div class="map-pin-dot" style="border-color:${cc};width:15px;height:15px"><div class="map-pin-dot-inner" style="background:${cc};width:4px;height:4px"></div></div>
-        <div class="map-pin-price" style="border-color:${cc};background:${isSel?'var(--green)':'rgba(0,0,0,.85)'};color:${isSel?'#000':'#fff'}" data-price-id="${e.id}">${fmt(currentPrice(e))}€</div>
+        <div class="map-pin-price" style="border-color:${cc};background:${isSel?'var(--green)':'rgba(0,0,0,.85)'};color:${isSel?'#000':'#fff'}"><s style="opacity:.55;font-size:8px;margin-right:3px">${fmt(e.originalPrice)}€</s><span data-price-id="${e.id}">${fmt(currentPrice(e))}€</span></div>
       </div>`})}).addTo(detailMap);
     m.on('click',()=>selectNearby(e.id));
   });
@@ -1164,10 +1455,10 @@ function renderSelection(){
 
   return `
 <div class="screen fade-in" style="background:var(--bg)">
-  <div class="fill scroll px24">
+  <div class="fill scroll safe-top px24">
     <!-- Header -->
     <div class="row gap12 center-y py18">
-      <button class="back-btn" onclick="go('detail',{selectedEventId:'${ev.id}'})">←</button>
+      <button class="back-btn" onclick="go('detail',{selectedEventId:'${ev.id}'})" style="display:flex;align-items:center;justify-content:center">${ico('arrowLeft',20,2)}</button>
       <span style="font-size:20px;font-weight:700;color:#fff">Seleccionar Entradas</span>
     </div>
 
@@ -1180,7 +1471,7 @@ function renderSelection(){
     <!-- Anti-speculation warning -->
     <div style="background:rgba(255,255,255,.05);border-radius:12px;padding:16px;margin-top:24px">
       <div class="row gap12 center-y">
-        <span style="font-size:24px">🎟</span>
+        <span style="display:flex;color:var(--orange)">${ico('ticket',24,1.6)}</span>
         <div>
           <div style="font-size:14px;font-weight:700;color:#fff">Límite Antiespeculación</div>
           <div class="t-silver" style="font-size:12px">Máximo de 2 entradas oficiales por persona para evitar la reventa y especulación.</div>
@@ -1194,7 +1485,10 @@ function renderSelection(){
       <div class="card-sm mt12 p20 row between center-y">
         <div>
           <div style="font-size:16px;font-weight:700;color:#fff">Entradas de General</div>
-          <div class="t-orange bold" style="font-size:14px">${fmt(unit)}€ / ud.</div>
+          <div class="row gap8 center-y">
+            <span class="t-silver" style="font-size:12px;text-decoration:line-through">${fmt(ev.originalPrice)}€</span>
+            <span class="t-orange bold" style="font-size:14px">${fmt(unit)}€ / ud.</span>
+          </div>
         </div>
         <div class="row gap16 center-y">
           <button onclick="setQty(${qty-1})" class="btn" style="width:36px;height:36px;border-radius:50%;background:${qty>1?'rgba(255,255,255,.1)':'rgba(255,255,255,.02)'};font-size:20px;color:${qty>1?'#fff':'var(--silver)'}">−</button>
@@ -1209,7 +1503,7 @@ function renderSelection(){
       ${[1,2].map(i=>{
         const active=i<=qty;
         return `<div class="ticket-box fill" style="border-color:${active?'var(--orange)':'rgba(255,255,255,.05)'};background:${active?'rgba(255,107,0,.15)':'rgba(255,255,255,.02)'}">
-          <span style="font-size:24px;color:${active?'var(--orange)':'rgba(160,174,192,.4)'}">🎟</span>
+          <span style="display:flex;color:${active?'var(--orange)':'rgba(160,174,192,.4)'}">${ico('ticket',24,1.6)}</span>
           <span style="font-size:13px;font-weight:700;color:${active?'#fff':'rgba(160,174,192,.4)'}">Entrada ${i}</span>
           <span style="font-size:11px;font-weight:500;color:${active?'var(--green)':'rgba(160,174,192,.4)'}">${active?'Asignada':'Vacía'}</span>
         </div>`;
@@ -1266,10 +1560,10 @@ function renderCheckout(){
 
   return `
 <div class="screen fade-in" style="background:var(--bg)">
-  <div class="fill scroll px24">
+  <div class="fill scroll safe-top px24">
     <!-- Header -->
     <div class="row gap12 center-y py18">
-      <button class="back-btn" onclick="go('selection')">←</button>
+      <button class="back-btn" onclick="go('selection')" style="display:flex;align-items:center;justify-content:center">${ico('arrowLeft',20,2)}</button>
       <span style="font-size:20px;font-weight:700;color:#fff">Resumen del Pedido</span>
     </div>
 
@@ -1300,17 +1594,20 @@ function renderCheckout(){
       <div class="divider"></div>
       <div class="row between center-y">
         <span class="t-white bold" style="font-size:16px">TOTAL:</span>
-        <span style="font-size:24px;font-weight:900;color:#fff">${fmt(totalLocked)}€</span>
+        <span class="row gap8 center-y">
+          <span class="t-silver" style="font-size:14px;text-decoration:line-through">${fmt(totalOrig)}€</span>
+          <span style="font-size:24px;font-weight:900;color:#fff">${fmt(totalLocked)}€</span>
+        </span>
       </div>
     </div>
 
     <!-- Fast pay -->
     <div class="row gap12 mt30">
       <button class="pay-btn" style="background:#fff;color:#000" onclick="confirmPay()">
-        <span>🎟</span> Pay
+         Pay
       </button>
       <button class="pay-btn" style="background:#000;color:#fff;border:1.2px solid #fff" onclick="confirmPay()">
-        <span>🎟</span> G Pay
+        G Pay
       </button>
     </div>
     <div style="height:100px"></div>
@@ -1363,7 +1660,7 @@ function toggleFav(id){
     S.favorites.add(id);
     const ev=S.events.find(e=>e.id===id);
     if(ev){
-      addNotif(id,'★ Guardado en Favoritos ★',`Has guardado ${ev.teams} en favoritos. Te avisaremos cuando baje de precio.`,'favorite');
+      addNotif(id,'Guardado en Favoritos',`Has guardado ${ev.teams} en favoritos. Te avisaremos cuando baje de precio.`,'favorite');
     }
   }
   render();
@@ -1505,7 +1802,7 @@ function drawPriceChart(ev, t){
   ctx.beginPath();ctx.arc(curX,curY,13+3*pulse,0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#00FF7F';
   ctx.beginPath();ctx.arc(curX,curY,5.5,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#0F0F1A';
+  ctx.fillStyle='#141414';
   ctx.beginPath();ctx.arc(curX,curY,2,0,Math.PI*2);ctx.fill();
 
   // ── Current price tag riding the dashed line (flips side near the right edge)
@@ -1576,6 +1873,9 @@ function render(){
     if(S.screen==='radar'&&S.activeTab==='Radar'){
       initRadarMap();
     }
+    if(S.screen==='radar'&&S.activeTab==='Eventos'){
+      initHomeMap();
+    }
     if(S.screen==='radar'&&S.activeTab==='Mis Entradas'){
       S.boughtTickets.forEach(t=>drawQR(t.id,hashCode(t.id)));
     }
@@ -1588,7 +1888,8 @@ function render(){
 function initialTickets(id){ return 9+(Math.abs(hashCode(id))%28); } // 9..36 seats, stable per event
 
 function init(){
-  S.events=initEvents().map(ev=>({...ev,tickets:initialTickets(ev.id)}));
+  // 3x longer auction window = price drops 3x slower per second
+  S.events=initEvents().map(ev=>({...ev,totalDur:ev.totalDur*3,rem:ev.rem*3,tickets:initialTickets(ev.id)}));
   render();
   startTicker();
 }
@@ -1598,7 +1899,7 @@ init();
 // Expose all onclick-callable functions to global scope
 const _g = {doLogin,quickRegister,setTab,setCat,toggleFav,goDetail,goSelection,
   go,setQty,confirmPay,clearNotifs,markNotifRead,clearTickets,
-  setRadarCat,selectMapEvent,zoomMap,resetMap,selectNearby};
+  setRadarCat,selectMapEvent,zoomMap,resetMap,selectNearby,toggleSearch,setSearchQ,toggleViewAll};
 Object.assign(window, _g);
 
 })();
