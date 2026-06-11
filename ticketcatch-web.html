@@ -229,6 +229,8 @@ input[type="search"]::-webkit-search-cancel-button,input[type="search"]::-webkit
 }
 .detail-cta-orig{font-size:13px;color:var(--silver);text-decoration:line-through;font-variant-numeric:tabular-nums}
 .detail-cta-save{font-size:11px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums}
+.detail-buy-btn{height:auto!important;min-height:52px;padding:8px 22px!important;flex-direction:column;gap:2px;line-height:1.15}
+.detail-buy-btn #det-scarcity{font-size:10px;font-weight:700;letter-spacing:.3px;opacity:.92}
 
 /* ── SCREEN TRANSITIONS ─────────────────── */
 .screen-wrap{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:50;animation:fade-in .2s}
@@ -438,12 +440,16 @@ function vsVisual(ev,size=48){
   </div>`;
 }
 function matchBG(ev){
-  return `linear-gradient(115deg,${ev.home.c1}40 0%,rgba(15,15,15,0) 50%),linear-gradient(245deg,${ev.away.c1}40 0%,rgba(15,15,15,0) 50%),linear-gradient(180deg,#202020,#0f0f0f)`;
+  return `linear-gradient(115deg,${ev.home.c1}14 0%,rgba(15,15,15,0) 50%),linear-gradient(245deg,${ev.away.c1}14 0%,rgba(15,15,15,0) 50%),linear-gradient(180deg,#202020,#0f0f0f)`;
 }
 /* Match card background: stadium photo underneath, team colors as a faint wash on top */
 function matchCardBG(ev){
-  const img=DETAIL_IMGS[ev.category]||DETAIL_IMGS.Futbol;
-  return `linear-gradient(115deg,${ev.home.c1}4d 0%,rgba(15,15,15,0) 55%),linear-gradient(245deg,${ev.away.c1}4d 0%,rgba(15,15,15,0) 55%),linear-gradient(180deg,rgba(15,15,15,.5),rgba(15,15,15,.72)),url('${img}')`;
+  const img=venueImg(ev);
+  return `linear-gradient(115deg,${ev.home.c1}14 0%,rgba(15,15,15,0) 55%),linear-gradient(245deg,${ev.away.c1}14 0%,rgba(15,15,15,0) 55%),linear-gradient(180deg,rgba(15,15,15,.5),rgba(15,15,15,.72)),url('${img}')`;
+}
+/* Real venue photo for the event's stadium/arena (category image as fallback) */
+function venueImg(ev){
+  return VENUE_IMGS[ev.stadium]||DETAIL_IMGS[ev.category]||DETAIL_IMGS.Futbol;
 }
 /* Short title for home cards: team abbreviations, keeping any "(ACB)"-style suffix */
 function shortTeams(ev){
@@ -562,7 +568,7 @@ function tickUpdate(){
       if(sc){
         const t=`Quedan ${ev.tickets} entradas`;
         if(sc.textContent!==t) sc.textContent=t;
-        sc.style.color = ev.tickets<=5 ? 'var(--red)' : 'var(--silver)';
+        sc.style.color = ev.tickets<=5 ? 'var(--red)' : 'rgba(0,0,0,.65)';
       }
       if(!chartRAF) drawPriceChart(ev); // reduced-motion fallback: one redraw per second
     }
@@ -955,10 +961,10 @@ function renderBigCard(ev, full){
   return `
 <div onclick="goDetail('${ev.id}')"
   style="${w};height:300px;border-radius:24px;position:relative;overflow:hidden;cursor:pointer;${bg};background-size:cover;background-position:center">
-  ${isM?`<div style="position:absolute;left:0;right:0;top:0;bottom:96px;display:flex;align-items:center;justify-content:center">${vsVisual(ev,58)}</div>`:''}
+  ${isM?`<div style="position:absolute;left:0;right:0;top:0;bottom:96px;display:flex;align-items:center;justify-content:center">${vsVisual(ev,76)}</div>`:''}
   <span onclick="event.stopPropagation();toggleFav('${ev.id}')"
     style="position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;background:rgba(15,15,15,.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;color:${isFav?'var(--orange)':'rgba(255,255,255,.75)'}">${ico('star',17,1.8,isFav)}</span>
-  ${ev.enViu?`<span style="position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:6px;background:rgba(15,15,15,.55);backdrop-filter:blur(6px);border-radius:999px;padding:5px 11px"><span class="live-dot"></span><span style="color:#ff6b6b;font-size:10.5px;font-weight:800;letter-spacing:.5px">EN VIVO</span></span>`:''}
+  <span style="position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:6px;background:rgba(15,15,15,.55);backdrop-filter:blur(6px);border-radius:999px;padding:5px 11px"><span class="live-dot" style="background:${ev.tickets<=5?'#e53e3e':'var(--orange)'}"></span><span style="color:${ev.tickets<=5?'#ff6b6b':'var(--orange)'};font-size:10.5px;font-weight:800;letter-spacing:.5px">QUEDAN ${ev.tickets} ENTRADAS</span></span>
   <div style="position:absolute;left:10px;right:10px;bottom:10px;background:rgba(12,12,12,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;padding:14px 16px">
     <div style="font-size:17px;font-weight:800;color:rgba(255,255,255,.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${shortTeams(ev)}</div>
     <div class="row between" style="margin-top:9px;align-items:flex-end">
@@ -1320,6 +1326,25 @@ function resetMap(){ if(radarMap){ S.mapCenter=null;S.mapZoom=null;radarMap.setV
 /* ═══════════════════════════════════════════
    DETAIL SCREEN
 ═══════════════════════════════════════════ */
+/* Real photos of each venue (Wikimedia Commons thumbnails, verified) */
+const VENUE_IMGS={
+  'Spotify Camp Nou':'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/Camp_Nou_aerial.jpg/960px-Camp_Nou_aerial.jpg',
+  'Estadio Municipal de Montilivi':'https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Estadio_montilivi_02-12-2018.jpg/960px-Estadio_montilivi_02-12-2018.jpg',
+  'Estadio de Mestalla':'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Mestalla_antes_del_partido_Valencia-Barcelona_LaLiga_2023-2024.jpg/960px-Mestalla_antes_del_partido_Valencia-Barcelona_LaLiga_2023-2024.jpg',
+  'San Mamés':'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ee/Panorama_im_San_Mam%C3%A9s_Stadion.jpg/960px-Panorama_im_San_Mam%C3%A9s_Stadion.jpg',
+  'Estadio Benito Villamarín':'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Estadio_Benito_Villamar%C3%ADn_2018001.jpg/960px-Estadio_Benito_Villamar%C3%ADn_2018001.jpg',
+  'Riyadh Air Metropolitano':'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Atleti_vs_Villarreal_-_September_2025.jpg/960px-Atleti_vs_Villarreal_-_September_2025.jpg',
+  'Estadi Mallorca Son Moix':'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Spain_mallorca_palma_stadium_Estadi_de_Son_Moix.jpg/960px-Spain_mallorca_palma_stadium_Estadi_de_Son_Moix.jpg',
+  'Estadio Abanca Balaídos':'https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Balaidos_hoy.jpg/960px-Balaidos_hoy.jpg',
+  'Palau Blaugrana':'https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Palau_Blaugrana_03.jpg/960px-Palau_Blaugrana_03.jpg',
+  'Palau Olímpic de Badalona':'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/Ol%C3%ADmpic_de_Badalona.jpg/960px-Ol%C3%ADmpic_de_Badalona.jpg',
+  'Movistar Arena':'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Palacio_de_Deportes_de_la_Comunidad_de_Madrid_%28WiZink_Center%29.jpg/960px-Palacio_de_Deportes_de_la_Comunidad_de_Madrid_%28WiZink_Center%29.jpg',
+  'Roig Arena':'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Roig_Arena.jpg/960px-Roig_Arena.jpg',
+  'Nou Congost':'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Partit_Manresa-Penya_al_nou_Congost.jpg/960px-Partit_Manresa-Penya_al_nou_Congost.jpg',
+  'RCDE Stadium':'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Stage_Front_Stadium.jpg/960px-Stage_Front_Stadium.jpg',
+  "Palau d'Esports de Granollers":'https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Palauesportgranollers.JPG/960px-Palauesportgranollers.JPG',
+};
+
 const DETAIL_IMGS={
   Futbol:'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=600',
   Basquet:'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&q=80&w=600',
@@ -1338,7 +1363,7 @@ function renderDetail(){
   if(!ev) return `<div class="screen center" style="background:var(--bg)"><span class="t-white">Cargando...</span></div>`;
   const price=currentPrice(ev);
   const isFav=S.favorites.has(ev.id);
-  const img=DETAIL_IMGS[ev.category]||DETAIL_IMGS.Futbol;
+  const img=venueImg(ev);
 
   // Nearby events
   const nearby = getNearby(ev);
@@ -1350,7 +1375,7 @@ function renderDetail(){
     <div class="detail-backdrop">
       <img src="${img}" alt="${ev.teams}" onerror="this.style.opacity=0">
       <div class="detail-backdrop-overlay"></div>
-      ${isMatch(ev)?`<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-top:24px">${vsVisual(ev,64)}</div>`:''}
+      ${isMatch(ev)?`<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-top:24px">${vsVisual(ev,96)}</div>`:''}
       <div class="detail-backdrop-content">
         <div class="row between center-y">
           <button class="back-btn" onclick="go('radar')" style="display:flex;align-items:center;justify-content:center">${ico('arrowLeft',20,2)}</button>
@@ -1435,13 +1460,11 @@ function renderDetail(){
         ?`<span class="detail-cta-save"><span id="cta-save">Ahorras ${fmt(savedAmount(ev))}€</span></span>`
         :`<span class="detail-cta-save" style="color:var(--orange)">Baja a las ${fmtClock(dropStartMs(ev))}</span>`}
     </div>
-    <div class="col" style="align-items:center;gap:4px;flex-shrink:0">
-      <button class="btn btn-green pulse-btn" style="height:52px;padding:0 22px;font-size:15px;font-weight:900;border-radius:14px"
-        onclick="goSelection('${ev.id}')">
-        ¡COMPRAR!
-      </button>
-      <span id="det-scarcity" style="font-size:10.5px;font-weight:700;letter-spacing:.4px;color:${ev.tickets<=5?'var(--red)':'var(--silver)'}">Quedan ${ev.tickets} entradas</span>
-    </div>
+    <button class="btn btn-green pulse-btn detail-buy-btn" style="font-size:15px;font-weight:900;border-radius:14px;flex-shrink:0"
+      onclick="goSelection('${ev.id}')">
+      <span>¡COMPRAR!</span>
+      <span id="det-scarcity" style="color:${ev.tickets<=5?'var(--red)':'rgba(0,0,0,.65)'}">Quedan ${ev.tickets} entradas</span>
+    </button>
   </div>
 </div>`;
 }
