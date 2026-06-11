@@ -9,7 +9,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --bg:#0f0f0f;--orange:#EC5B13;--green:#00FF7F;--silver:#A0AEC0;
+  --bg:#0f0f0f;--orange:#EC5B13;--green:#34D399;--silver:#A0AEC0;
   --card:#1a1a1a;--divider:#2a2a2a;--red:#FC8181;--white:rgba(255,255,255,.90);
 }
 html,body{height:100%;background:#0f0f0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
@@ -31,14 +31,15 @@ html,body{height:100%;background:#0f0f0f;font-family:-apple-system,BlinkMacSyste
 
 /* ── ANIMATIONS ─────────────────────────── */
 @keyframes pulse-dot{0%,100%{opacity:.2}50%{opacity:1}}
-@keyframes pulse-scale{0%,100%{transform:scale(.97)}50%{transform:scale(1.03)}}
+/* Gentle nudge: one small pulse every 20s instead of a constant throb */
+@keyframes pulse-scale{0%,5%,100%{transform:scale(1)}1.5%{transform:scale(1.035)}3.5%{transform:scale(.985)}}
 @keyframes radar-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes fade-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes map-pulse{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.5);opacity:0}}
 @keyframes laser-scan{0%{top:4%}50%{top:94%}100%{top:4%}}
 
 .live-dot{width:8px;height:8px;border-radius:50%;background:#e53e3e;display:inline-block;animation:pulse-dot .8s infinite}
-.pulse-btn{animation:pulse-scale .9s ease-in-out infinite}
+.pulse-btn{animation:pulse-scale 20s ease-in-out infinite}
 .fade-in{animation:fade-in .25s ease-out}
 
 /* Press feedback (HIG/MD: tactile response <100ms, transform-only = no reflow) */
@@ -93,9 +94,9 @@ button{touch-action:manipulation;font-family:inherit}
 .card{background:var(--card);border-radius:16px;border:1px solid rgba(255,255,255,.05)}
 .card-sm{background:var(--card);border-radius:12px;border:1px solid rgba(255,255,255,.05)}
 .card-orange{background:var(--card);border-radius:16px;border:1.2px solid rgba(255,107,0,.4)}
-.pill{border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;border:none;background:transparent}
+.pill{border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent}
 .pill-active{background:var(--orange);color:#000}
-.pill-inactive{border:1.2px solid var(--silver);color:#fff}
+.pill-inactive{border:1.2px solid var(--silver);color:#fff;opacity:.5}
 .chip{border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;border:none}
 .btn{border:none;cursor:pointer;font-weight:700;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px}
 .btn-orange{background:var(--orange);color:#fff}
@@ -121,14 +122,14 @@ button{touch-action:manipulation;font-family:inherit}
   background:rgba(26,26,26,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   border:1px solid rgba(255,255,255,.07);border-radius:999px;
   box-shadow:0 10px 30px rgba(0,0,0,.45);
-  padding:5px;display:flex;justify-content:space-between;align-items:center;
+  padding:7px;display:flex;justify-content:space-between;align-items:center;
 }
 .nav-item{
-  width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;
+  width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;
   display:flex;align-items:center;justify-content:center;position:relative;
   background:transparent;transition:background .25s ease,transform .15s ease-out;
 }
-.nav-icon svg{width:19px;height:19px}
+.nav-icon svg{width:22px;height:22px}
 .nav-item.active{background:var(--orange);box-shadow:0 4px 16px rgba(236,91,19,.45)}
 .nav-icon{display:flex;transition:color .2s,transform .15s ease-out}
 .nav-item.active .nav-icon{color:#fff}
@@ -140,9 +141,9 @@ button{touch-action:manipulation;font-family:inherit}
 .event-card-body{padding:16px}
 
 /* ── DETAIL ─────────────────────────────── */
-.detail-backdrop{width:100%;height:240px;position:relative;overflow:hidden}
-.detail-backdrop img{width:100%;height:100%;object-fit:cover;opacity:.6}
-.detail-backdrop-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.4),rgba(20,20,20,.6),#0f0f0f)}
+.detail-backdrop{width:100%;height:260px;position:relative;overflow:hidden}
+.detail-backdrop>img{width:100%;height:100%;object-fit:cover;opacity:.95}
+.detail-backdrop-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.5) 0%,rgba(0,0,0,.05) 38%,rgba(15,15,15,.35) 78%,#0f0f0f 100%)}
 .detail-backdrop-content{position:absolute;inset:0;padding:calc(18px + env(safe-area-inset-top)) 18px 18px;display:flex;flex-direction:column;justify-content:space-between}
 .back-btn{width:48px;height:48px;border-radius:50%;background:rgba(0,0,0,.45);border:none;cursor:pointer;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
 
@@ -275,29 +276,29 @@ const S = {
 ═══════════════════════════════════════════ */
 /* Team crest data: abbr + two brand colors (rendered as SVG shields) */
 const T={
-  FCB:{a:'FCB',c1:'#A50044',c2:'#004D98'},
-  RMA:{a:'RMA',c1:'#00529F',c2:'#FEBE10'},
-  GIR:{a:'GIR',c1:'#CD2534',c2:'#DDDDDD'},
-  ATM:{a:'ATM',c1:'#CB3524',c2:'#262E62'},
-  RCDE:{a:'RCDE',c1:'#007FC8',c2:'#DDDDDD'},
-  SEV:{a:'SEV',c1:'#D8121A',c2:'#DDDDDD'},
-  VCF:{a:'VCF',c1:'#EE3524',c2:'#FFDD00'},
-  VIL:{a:'VIL',c1:'#FFE667',c2:'#005187'},
-  ATH:{a:'ATH',c1:'#EE2523',c2:'#DDDDDD'},
-  RSO:{a:'RSO',c1:'#0067B1',c2:'#DDDDDD'},
-  BET:{a:'BET',c1:'#00954C',c2:'#DDDDDD'},
-  MLL:{a:'MLL',c1:'#E20613',c2:'#1B1B1B'},
-  CEL:{a:'CEL',c1:'#8AC3EE',c2:'#DDDDDD'},
-  GET:{a:'GET',c1:'#005999',c2:'#DDDDDD'},
-  JOV:{a:'JOV',c1:'#00703C',c2:'#1B1B1B'},
-  BAS:{a:'BAS',c1:'#002F6C',c2:'#D6001C'},
-  VBC:{a:'VBC',c1:'#F58220',c2:'#1B1B1B'},
-  UNI:{a:'UNI',c1:'#008542',c2:'#1B1B1B'},
-  MAN:{a:'MAN',c1:'#C8102E',c2:'#1B1B1B'},
-  KIE:{a:'KIE',c1:'#1B1B1B',c2:'#DDDDDD'},
-  GRA:{a:'GRA',c1:'#005BAA',c2:'#DDDDDD'},
-  ADE:{a:'ADE',c1:'#5B2D8E',c2:'#FFD700'},
-  BID:{a:'BID',c1:'#007A33',c2:'#FFD500'},
+  FCB:{a:'FCB',c1:'#A50044',c2:'#004D98',img:'assets/crests/fcb.png'},
+  RMA:{a:'RMA',c1:'#00529F',c2:'#FEBE10',img:'assets/crests/rma.png'},
+  GIR:{a:'GIR',c1:'#CD2534',c2:'#DDDDDD',img:'assets/crests/gir.png'},
+  ATM:{a:'ATM',c1:'#CB3524',c2:'#262E62',img:'assets/crests/atm.png'},
+  RCDE:{a:'RCDE',c1:'#007FC8',c2:'#DDDDDD',img:'assets/crests/rcde.png'},
+  SEV:{a:'SEV',c1:'#D8121A',c2:'#DDDDDD',img:'assets/crests/sev.png'},
+  VCF:{a:'VCF',c1:'#EE3524',c2:'#FFDD00',img:'assets/crests/vcf.png'},
+  VIL:{a:'VIL',c1:'#FFE667',c2:'#005187',img:'assets/crests/vil.png'},
+  ATH:{a:'ATH',c1:'#EE2523',c2:'#DDDDDD',img:'assets/crests/ath.png'},
+  RSO:{a:'RSO',c1:'#0067B1',c2:'#DDDDDD',img:'assets/crests/rso.png'},
+  BET:{a:'BET',c1:'#00954C',c2:'#DDDDDD',img:'assets/crests/bet.png'},
+  MLL:{a:'MLL',c1:'#E20613',c2:'#1B1B1B',img:'assets/crests/mll.png'},
+  CEL:{a:'CEL',c1:'#8AC3EE',c2:'#DDDDDD',img:'assets/crests/cel.png'},
+  GET:{a:'GET',c1:'#005999',c2:'#DDDDDD',img:'assets/crests/get.png'},
+  JOV:{a:'JOV',c1:'#00703C',c2:'#1B1B1B',img:'assets/crests/jov.png'},
+  BAS:{a:'BAS',c1:'#002F6C',c2:'#D6001C',img:'assets/crests/bas.png'},
+  VBC:{a:'VBC',c1:'#F58220',c2:'#1B1B1B',img:'assets/crests/vbc.png'},
+  UNI:{a:'UNI',c1:'#008542',c2:'#1B1B1B',img:'assets/crests/uni.png'},
+  MAN:{a:'MAN',c1:'#C8102E',c2:'#1B1B1B',img:'assets/crests/man.png'},
+  KIE:{a:'KIE',c1:'#1B1B1B',c2:'#DDDDDD',img:'assets/crests/kie.png'},
+  GRA:{a:'GRA',c1:'#005BAA',c2:'#DDDDDD',img:'assets/crests/gra.png'},
+  ADE:{a:'ADE',c1:'#5B2D8E',c2:'#FFD700',img:'assets/crests/ade.png'},
+  BID:{a:'BID',c1:'#007A33',c2:'#FFD500',img:'assets/crests/bid.png'},
 };
 
 function initEvents(){
@@ -346,11 +347,49 @@ function initEvents(){
    PRICE / LOGIC
 ═══════════════════════════════════════════ */
 function currentPrice(ev){
+  if(ev.startMs && !auctionActive(ev)) return ev.originalPrice; // drop not started yet
   const prog = 1 - Math.max(0,Math.min(1,ev.rem/ev.totalDur));
   const c = ev.basePrice - (ev.basePrice - ev.floorPrice)*prog;
   return Math.max(ev.floorPrice, Math.round(c*100)/100);
 }
 function savedAmount(ev){ return Math.max(0, Math.round((ev.originalPrice - currentPrice(ev))*100)/100); }
+
+/* ── Auction activation: the price only starts dropping 3h before kick-off ── */
+const DROP_LEAD_MS=3*3600*1000;
+const MONTHS_ES={enero:0,febrero:1,marzo:2,abril:3,mayo:4,junio:5,julio:6,agosto:7,septiembre:8,octubre:9,noviembre:10,diciembre:11};
+function parseStartMs(ev){
+  const now=new Date();
+  const [h,m]=String(ev.time||'20:00').replace('h','').split(':').map(Number);
+  let d=new Date(now.getFullYear(),now.getMonth(),now.getDate(),h||20,m||0,0,0);
+  if(ev.date==='Mañana'){ d.setDate(d.getDate()+1); }
+  else if(ev.date==='Este fin de semana'){
+    const add=((6-now.getDay())+7)%7; // days until next Saturday (0 if today is Saturday)
+    d.setDate(d.getDate()+add);
+  } else if(ev.date!=='Hoy'){
+    const mm=ev.date.match(/^(\d{1,2})\s+de\s+([A-Za-zÀ-ÿ]+)/);
+    if(mm && MONTHS_ES[mm[2].toLowerCase()]!==undefined){
+      d=new Date(now.getFullYear(),MONTHS_ES[mm[2].toLowerCase()],+mm[1],h||20,m||0,0,0);
+      if(d.getTime()<now.getTime()-12*3600e3) d.setFullYear(d.getFullYear()+1);
+    }
+  }
+  return d.getTime();
+}
+function dropStartMs(ev){ return (ev.startMs||0)-DROP_LEAD_MS; }
+function auctionActive(ev){ return !ev.startMs || Date.now()>=dropStartMs(ev); }
+/* CatchTime badge: when the price drop opens (or is already live) */
+function catchTimeHTML(ev,fs=10.5){
+  const active=auctionActive(ev);
+  return `<span style="font-size:${fs}px;font-weight:700;color:var(--orange);display:inline-flex;align-items:center;gap:4px;white-space:nowrap">
+    ${ico('bolt',fs+2,2)}${active?'CatchTime activo':'CatchTime '+fmtClock(dropStartMs(ev))}</span>`;
+}
+function fmtClock(ms){
+  const d=new Date(ms), now=new Date();
+  const hh=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+'h';
+  if(d.toDateString()===now.toDateString()) return hh;
+  const tom=new Date(now); tom.setDate(tom.getDate()+1);
+  if(d.toDateString()===tom.toDateString()) return 'mañana '+hh;
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${hh}`;
+}
 
 function fmt(n){ return n.toFixed(2); }
 
@@ -378,6 +417,10 @@ function catGradient(cat){
 function isMatch(ev){ return !!(ev.home&&ev.away); }
 let crestUid=0;
 function crestSVG(t,size=44){
+  if(t.img){
+    return `<img src="${t.img}" width="${size}" height="${size}" alt="${t.a}" loading="lazy"
+      style="display:block;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))">`;
+  }
   const id='cg'+(crestUid++);
   return `<svg width="${size}" height="${size}" viewBox="0 0 48 48" style="display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))" aria-hidden="true">
     <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
@@ -396,6 +439,17 @@ function vsVisual(ev,size=48){
 }
 function matchBG(ev){
   return `linear-gradient(115deg,${ev.home.c1}40 0%,rgba(15,15,15,0) 50%),linear-gradient(245deg,${ev.away.c1}40 0%,rgba(15,15,15,0) 50%),linear-gradient(180deg,#202020,#0f0f0f)`;
+}
+/* Match card background: stadium photo underneath, team colors as a faint wash on top */
+function matchCardBG(ev){
+  const img=DETAIL_IMGS[ev.category]||DETAIL_IMGS.Futbol;
+  return `linear-gradient(115deg,${ev.home.c1}4d 0%,rgba(15,15,15,0) 55%),linear-gradient(245deg,${ev.away.c1}4d 0%,rgba(15,15,15,0) 55%),linear-gradient(180deg,rgba(15,15,15,.5),rgba(15,15,15,.72)),url('${img}')`;
+}
+/* Short title for home cards: team abbreviations, keeping any "(ACB)"-style suffix */
+function shortTeams(ev){
+  if(!isMatch(ev))return ev.teams;
+  const suf=(ev.teams.match(/\s*(\(.*\))$/)||[])[1]||'';
+  return `${ev.home.a} vs ${ev.away.a}${suf?' '+suf:''}`;
 }
 
 /* ═══════════════════════════════════════════
@@ -437,7 +491,11 @@ let tickerInterval=null;
 function startTicker(){
   if(tickerInterval)clearInterval(tickerInterval);
   tickerInterval=setInterval(()=>{
+    let activated=false;
     S.events = S.events.map(ev=>{
+      // Auction not open yet: price frozen at the original until 3h before kick-off
+      if(!auctionActive(ev)){ return {...ev,_pre:true}; }
+      if(ev._pre){ activated=true; } // just crossed the 3h threshold: refresh UI
       let rem = ev.rem - 1;
       let tickets = ev.tickets;
       if(rem<=0){ rem = ev.totalDur; tickets = initialTickets(ev.id); } // new auction round restocks
@@ -446,7 +504,7 @@ function startTicker(){
         const urgency = 1 - rem/ev.totalDur;
         if(tickets>2 && Math.random() < 0.006 + 0.03*urgency*urgency) tickets--;
       }
-      const updated = {...ev, rem, tickets};
+      const updated = {...ev, rem, tickets, _pre:false};
 
       // Time urgency alerts
       if(rem===600||rem===300||rem===60){
@@ -466,6 +524,7 @@ function startTicker(){
 
       return updated;
     });
+    if(activated && (S.screen==='radar'||S.screen==='detail')) scheduleRender();
     tickUpdate();
   },1000);
 }
@@ -486,8 +545,13 @@ function tickUpdate(){
   if(S.screen==='detail'){
     const ev=S.events.find(e=>e.id===S.selectedEventId);
     if(ev){
+      const active=auctionActive(ev);
       const cd=document.getElementById('det-countdown');
-      if(cd){ const t=countdown(ev.rem); if(cd.textContent!==t) cd.textContent=t; }
+      if(cd){
+        const secs=active?ev.rem:Math.max(0,Math.ceil((dropStartMs(ev)-Date.now())/1000));
+        const t=countdown(secs);
+        if(cd.textContent!==t) cd.textContent=t;
+      }
       const dp=document.getElementById('det-price');
       if(dp){ const p=fmt(currentPrice(ev))+'€'; if(dp.textContent!==p) dp.textContent=p; }
       const cs=document.getElementById('cta-save');
@@ -496,9 +560,9 @@ function tickUpdate(){
       if(cc){ const t=countdown(ev.rem); if(cc.textContent!==t) cc.textContent=t; }
       const sc=document.getElementById('det-scarcity');
       if(sc){
-        const t=`¡Quedan solo ${ev.tickets} entradas!`;
+        const t=`Quedan ${ev.tickets} entradas`;
         if(sc.textContent!==t) sc.textContent=t;
-        sc.style.color = ev.tickets<=5 ? 'var(--red)' : 'var(--orange)';
+        sc.style.color = ev.tickets<=5 ? 'var(--red)' : 'var(--silver)';
       }
       if(!chartRAF) drawPriceChart(ev); // reduced-motion fallback: one redraw per second
     }
@@ -550,6 +614,8 @@ const ICO_PATHS={
   trash:'<path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>',
   slash:'<circle cx="12" cy="12" r="9"/><path d="M5.7 5.7l12.6 12.6"/>',
   crosshair:'<circle cx="12" cy="12" r="7"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+  share:'<path d="M12 15V4M8 7.5L12 3.5l4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>',
+  bolt:'<path d="M13 2L4.5 13.5h6L11 22l8.5-11.5h-6z"/>',
   x:'<path d="M6 6l12 12M18 6L6 18"/>',
 };
 function ico(name,size=18,sw=1.8,filled=false){
@@ -706,7 +772,7 @@ function renderEventosTab(){
       style="width:42px;height:42px;border-radius:50%;background:#242424;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--orange)">
       ${NAV_ICONS.user}
     </button>
-    <img src="assets/icon_logo.png" alt="TicketCatch" style="height:34px;width:auto;object-fit:contain">
+    <img src="assets/icon_logo.png" alt="TicketCatch" style="height:44px;width:auto;object-fit:contain">
     <button data-nav="Alertas" onclick="setTab('Alertas')" aria-label="Alertas"
       style="position:relative;width:42px;height:42px;border-radius:50%;background:#242424;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--silver)">
       ${NAV_ICONS.bell}
@@ -737,7 +803,7 @@ function renderEventosTab(){
 function sectionHeader(title, key){
   const open=S.viewAll===key;
   return `
-  <div class="row between center-y" style="padding:28px 20px 12px">
+  <div class="row between center-y" style="padding:14px 20px 10px">
     <span style="font-size:21px;font-weight:800;color:rgba(255,255,255,.92)">${title}</span>
     <button onclick="toggleViewAll('${key}')"
       style="background:none;border:none;cursor:pointer;color:var(--orange);font-size:12.5px;font-weight:700;padding:4px 0">
@@ -753,11 +819,15 @@ function renderHomeSections(){
   if(list.length===0){
     return `<div class="empty-state"><div class="empty-icon-wrap">${ico('slash',32,1.6)}</div><p class="t-silver" style="font-size:15px">No hay eventos que coincidan</p></div>`;
   }
-  // Disjoint sections: populares = best discounts, próximos = the rest by closing time
-  const byDiscount=[...list].sort((a,b)=>(savedAmount(b)/b.originalPrice)-(savedAmount(a)/a.originalPrice));
-  const populares=byDiscount.slice(0, Math.min(5, Math.ceil(list.length/2)));
+  // Disjoint sections: populares = sports first (the app's essence: football, then
+  // basketball/handball), best discounts as tie-break. Próximos = the rest.
+  // Both ordered by event date: about to start first, then upcoming.
+  const sportRank=e=>e.category==='Futbol'?0:(e.category==='Basquet'||e.category==='Handbol')?1:2;
+  const byDiscount=[...list].sort((a,b)=>
+    sportRank(a)-sportRank(b) || (savedAmount(b)/b.originalPrice)-(savedAmount(a)/a.originalPrice));
+  const populares=byDiscount.slice(0, Math.min(5, Math.ceil(list.length/2))).sort((a,b)=>a.startMs-b.startMs);
   const popIds=new Set(populares.map(e=>e.id));
-  const proximos=list.filter(e=>!popIds.has(e.id)).sort((a,b)=>a.rem-b.rem);
+  const proximos=list.filter(e=>!popIds.has(e.id)).sort((a,b)=>a.startMs-b.startMs);
 
   let html='';
   if(proximos.length>0){
@@ -775,7 +845,7 @@ function renderHomeSections(){
 
   // Cerca de ti: interactive mini-map with all event pins
   html+=`
-  <div class="row between center-y" style="padding:28px 20px 12px">
+  <div class="row between center-y" style="padding:14px 20px 10px">
     <span style="font-size:21px;font-weight:800;color:rgba(255,255,255,.92)">Cerca de ti</span>
     <button onclick="setTab('Radar')"
       style="background:none;border:none;cursor:pointer;color:var(--orange);font-size:12.5px;font-weight:700;padding:4px 0">
@@ -854,18 +924,21 @@ function renderMiniCard(ev, full){
   const img=DETAIL_IMGS[ev.category]||DETAIL_IMGS.Futbol;
   const w=full?'width:100%':'min-width:285px;max-width:285px';
   const thumb=isMatch(ev)
-    ?`<div style="width:66px;height:66px;border-radius:12px;flex-shrink:0;background:${matchBG(ev)};display:flex;align-items:center;justify-content:center;gap:2px;border:1px solid rgba(255,255,255,.07)">${crestSVG(ev.home,28)}${crestSVG(ev.away,28)}</div>`
+    ?`<div style="width:66px;height:66px;border-radius:12px;flex-shrink:0;background-image:${matchCardBG(ev)};background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;gap:2px;border:1px solid rgba(255,255,255,.07)">${crestSVG(ev.home,28)}${crestSVG(ev.away,28)}</div>`
     :`<div style="width:66px;height:66px;border-radius:12px;flex-shrink:0;background-image:url('${img}');background-size:cover;background-position:center"></div>`;
   return `
 <div onclick="goDetail('${ev.id}')"
   style="${w};background:var(--card);border:1px solid rgba(255,255,255,.05);border-radius:16px;padding:11px;display:flex;gap:12px;align-items:center;cursor:pointer">
   ${thumb}
   <div class="col" style="gap:3px;min-width:0">
-    <span style="font-size:14.5px;font-weight:700;color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.teams}</span>
+    <span style="font-size:14.5px;font-weight:700;color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${shortTeams(ev)}</span>
     <span class="t-silver" style="font-size:12.5px">${ev.date} • ${ev.time}</span>
-    <span class="row gap8 center-y">
-      <span class="t-silver" style="font-size:12px;text-decoration:line-through">${fmt(ev.originalPrice)}€</span>
-      <span class="t-orange" style="font-size:14.5px;font-weight:800" data-price-id="${ev.id}">${fmt(currentPrice(ev))}€</span>
+    <span class="row center-y" style="gap:10px;flex-wrap:wrap;row-gap:1px">
+      ${auctionActive(ev)
+        ?`<span class="row gap8 center-y"><span class="t-silver" style="font-size:12px;text-decoration:line-through">${fmt(ev.originalPrice)}€</span>
+      <span class="t-orange" style="font-size:14.5px;font-weight:800" data-price-id="${ev.id}">${fmt(currentPrice(ev))}€</span></span>`
+        :`<span style="font-size:14.5px;font-weight:800;color:rgba(255,255,255,.92)">${fmt(ev.originalPrice)}€</span>`}
+      ${catchTimeHTML(ev)}
     </span>
   </div>
 </div>`;
@@ -877,7 +950,7 @@ function renderBigCard(ev, full){
   const w=full?'width:100%':'min-width:285px;max-width:285px';
   const isM=isMatch(ev);
   const bg=isM
-    ?`background-image:${matchBG(ev)};border:1px solid rgba(255,255,255,.07)`
+    ?`background-image:${matchCardBG(ev)};border:1px solid rgba(255,255,255,.07)`
     :`background-image:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(0,0,0,.35)),url('${img}')`;
   return `
 <div onclick="goDetail('${ev.id}')"
@@ -887,16 +960,21 @@ function renderBigCard(ev, full){
     style="position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;background:rgba(15,15,15,.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;color:${isFav?'var(--orange)':'rgba(255,255,255,.75)'}">${ico('star',17,1.8,isFav)}</span>
   ${ev.enViu?`<span style="position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:6px;background:rgba(15,15,15,.55);backdrop-filter:blur(6px);border-radius:999px;padding:5px 11px"><span class="live-dot"></span><span style="color:#ff6b6b;font-size:10.5px;font-weight:800;letter-spacing:.5px">EN VIVO</span></span>`:''}
   <div style="position:absolute;left:10px;right:10px;bottom:10px;background:rgba(12,12,12,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;padding:14px 16px">
-    <div style="font-size:17px;font-weight:800;color:rgba(255,255,255,.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.teams}</div>
-    <div class="row between center-y" style="margin-top:9px">
-      <span class="row center-y" style="gap:6px;color:var(--silver);font-size:13px">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M16 3v4M8 3v4M4 11h16"/></svg>
-        ${ev.date}
+    <div style="font-size:17px;font-weight:800;color:rgba(255,255,255,.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${shortTeams(ev)}</div>
+    <div class="row between" style="margin-top:9px;align-items:flex-end">
+      <span class="col" style="gap:4px;min-width:0">
+        <span class="row center-y" style="gap:6px;color:var(--silver);font-size:13px">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M16 3v4M8 3v4M4 11h16"/></svg>
+          ${ev.date} • ${ev.time}
+        </span>
+        ${catchTimeHTML(ev)}
       </span>
-      <span class="row gap8 center-y">
-        <span class="t-silver" style="font-size:13px;text-decoration:line-through">${fmt(ev.originalPrice)}€</span>
+      ${auctionActive(ev)
+        ?`<span class="col" style="align-items:flex-end;gap:1px;flex-shrink:0">
+        <span class="t-silver" style="font-size:12px;text-decoration:line-through">${fmt(ev.originalPrice)}€</span>
         <span class="t-orange" style="font-size:17px;font-weight:900" data-price-id="${ev.id}">${fmt(currentPrice(ev))}€</span>
-      </span>
+      </span>`
+        :`<span style="font-size:16px;font-weight:900;color:rgba(255,255,255,.95);flex-shrink:0">${fmt(ev.originalPrice)}€</span>`}
     </div>
   </div>
 </div>`;
@@ -1003,13 +1081,13 @@ function renderAlertasTab(){
 
 function renderNotifItem(n){
   const color = n.type==='price_drop'?'var(--orange)':n.type==='time_urgency'?'#FFCC00':'var(--green)';
-  const borderColor = n.isRead?'rgba(255,255,255,.05)':color.replace(')',', .35)').replace('rgba','rgba').replace('var(--orange)','rgba(255,107,0,.35)').replace('#FFCC00','rgba(255,204,0,.35)').replace('var(--green)','rgba(0,255,127,.35)');
+  const borderColor = n.isRead?'rgba(255,255,255,.05)':color.replace(')',', .35)').replace('rgba','rgba').replace('var(--orange)','rgba(255,107,0,.35)').replace('#FFCC00','rgba(255,204,0,.35)').replace('var(--green)','rgba(52,211,153,.35)');
   return `
 <div class="notif-item" style="background:${n.isRead?'rgba(20,20,20,.6)':'var(--card)'};border-color:${n.isRead?'rgba(255,255,255,.05)':color}"
-  onclick="markNotifRead('${n.id}')">
+  onclick="openNotif('${n.id}')">
   <div class="row p14 gap14">
-    <div style="width:40px;height:40px;border-radius:50%;background:${color.replace(')',', .15)').replace('var(--orange)','rgba(255,107,0,.15)').replace('#FFCC00','rgba(255,204,0,.15)').replace('var(--green)','rgba(0,255,127,.15)')};
-      border:1px solid ${color.replace(')',', .3)').replace('var(--orange)','rgba(255,107,0,.3)').replace('#FFCC00','rgba(255,204,0,.3)').replace('var(--green)','rgba(0,255,127,.3)')};
+    <div style="width:40px;height:40px;border-radius:50%;background:${color.replace(')',', .15)').replace('var(--orange)','rgba(255,107,0,.15)').replace('#FFCC00','rgba(255,204,0,.15)').replace('var(--green)','rgba(52,211,153,.15)')};
+      border:1px solid ${color.replace(')',', .3)').replace('var(--orange)','rgba(255,107,0,.3)').replace('#FFCC00','rgba(255,204,0,.3)').replace('var(--green)','rgba(52,211,153,.3)')};
       display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${color}">
       ${n.type==='favorite'?ico('star',18,1.8,true):ico('bell',18)}
     </div>
@@ -1032,6 +1110,18 @@ function clearNotifs(){
 function markNotifRead(id){
   S.notifications=S.notifications.map(n=>n.id===id?{...n,isRead:true}:n);
   render();
+}
+
+/* Tap on an alert: mark as read and jump straight to the event that triggered it */
+function openNotif(id){
+  const n=S.notifications.find(x=>x.id===id);
+  if(!n)return;
+  S.notifications=S.notifications.map(x=>x.id===id?{...x,isRead:true}:x);
+  if(n.eventId && S.events.some(e=>e.id===n.eventId)){
+    goDetail(n.eventId);
+  } else {
+    render();
+  }
 }
 
 /* ── WALLET TAB ──────────────────────────── */
@@ -1206,7 +1296,7 @@ function renderMapPopup(ev){
     <div style="width:44px;height:44px;border-radius:12px;background:${cc}22;border:1px solid ${cc}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${cc}">
       ${ico('compass',22)}
     </div>
-    <div class="fill">
+    <div class="fill" style="min-width:0;overflow:hidden">
       <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:${cc}">${catLabel(ev.category)}</div>
       <div style="font-size:14px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.teams}</div>
       <div class="t-silver" style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.stadium}</div>
@@ -1214,8 +1304,8 @@ function renderMapPopup(ev){
     <div style="text-align:right;flex-shrink:0">
       <div class="t-silver" style="font-size:11px;text-decoration:line-through">${fmt(ev.originalPrice)}€</div>
       <div style="font-size:16px;font-weight:900;color:var(--orange)" data-price-id="${ev.id}">${fmt(currentPrice(ev))}€</div>
-      <button class="btn btn-orange" style="margin-top:4px;height:28px;padding:0 10px;font-size:10px;font-weight:900;border-radius:6px" onclick="event.stopPropagation();goDetail('${ev.id}')">
-        IR A LA PUJA
+      <button class="btn btn-orange" style="margin-top:4px;height:28px;padding:0 10px;font-size:10px;font-weight:900;border-radius:6px;white-space:nowrap" onclick="event.stopPropagation();goDetail('${ev.id}')">
+        VER OFERTA
       </button>
     </div>
   </div>
@@ -1255,37 +1345,52 @@ function renderDetail(){
 
   return `
 <div class="screen fade-in" style="background:var(--bg)">
-  <div class="fill scroll">
-    <!-- Backdrop -->
+  <div class="fill scroll" id="detail-scroll" data-ev="${ev.id}">
+    <!-- Hero image -->
     <div class="detail-backdrop">
-      ${isMatch(ev)
-        ?`<div style="width:100%;height:100%;background:${matchBG(ev)}"></div>`
-        :`<img src="${img}" alt="${ev.teams}" onerror="this.style.opacity=0">`}
+      <img src="${img}" alt="${ev.teams}" onerror="this.style.opacity=0">
       <div class="detail-backdrop-overlay"></div>
-      ${isMatch(ev)?`<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-bottom:52px">${vsVisual(ev,68)}</div>`:''}
+      ${isMatch(ev)?`<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-top:24px">${vsVisual(ev,64)}</div>`:''}
       <div class="detail-backdrop-content">
         <div class="row between center-y">
           <button class="back-btn" onclick="go('radar')" style="display:flex;align-items:center;justify-content:center">${ico('arrowLeft',20,2)}</button>
-          <button class="icon-btn" onclick="toggleFav('${ev.id}')">
-            <span style="display:flex;color:${isFav?'var(--orange)':'#fff'}">${ico('star',20,1.8,isFav)}</span>
-          </button>
+          <div class="row gap10">
+            <button class="icon-btn" onclick="shareEvent('${ev.id}')" aria-label="Compartir">
+              <span style="display:flex">${ico('share',19,2)}</span>
+            </button>
+            <button class="icon-btn" onclick="toggleFav('${ev.id}')" aria-label="Favorito">
+              <span style="display:flex;color:${isFav?'var(--orange)':'#fff'}">${ico('star',20,1.8,isFav)}</span>
+            </button>
+          </div>
         </div>
-        <div>
-          <span class="tag">${catLabel(ev.category)}</span>
-          <div style="font-size:22px;font-weight:800;color:#fff;margin-top:4px;line-height:1.3">${ev.teams}</div>
-          <div style="font-size:12px;font-weight:600;color:var(--silver);letter-spacing:1px;margin-top:4px">${ev.stadium.toUpperCase()}</div>
-        </div>
+        <div></div>
       </div>
+    </div>
+
+    <!-- Title + date/venue -->
+    <div class="px20 mt8">
+      <span class="tag">${catLabel(ev.category)}</span>
+      <div style="font-size:25px;font-weight:800;color:#fff;margin-top:8px;line-height:1.25">${ev.teams}</div>
+      <div class="t-silver" style="font-size:14px;margin-top:6px">${ev.date}, ${ev.time} &nbsp;•&nbsp; en ${ev.stadium}</div>
+    </div>
+
+    <!-- Description (collapsed to 2 lines, expandable) -->
+    <div class="px20 mt20">
+      <div style="font-size:17px;font-weight:700;color:#fff">Descripción</div>
+      <p class="t-silver" style="font-size:14px;line-height:1.6;margin-top:8px;${S.descOpen?'':'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden'}">${descFor(ev)}</p>
+      <button onclick="toggleDesc()" style="background:none;border:none;cursor:pointer;padding:4px 0 0;color:var(--orange);font-size:13px;font-weight:700">${S.descOpen?'Ver menos':'Leer más'}</button>
     </div>
 
     <!-- Countdown -->
     <div class="px20 mt16">
       <div class="countdown-box">
-        <div style="font-size:11px;font-weight:700;color:var(--orange);letter-spacing:1.5px">¡LA VENTA CIERRA EN!</div>
-        <div class="countdown-time mt6" id="det-countdown">${countdown(ev.rem)}</div>
+        <div id="det-cd-label" style="font-size:11px;font-weight:700;color:var(--orange);letter-spacing:1.5px">${auctionActive(ev)?'¡LA VENTA CIERRA EN!':'¡EL PRECIO EMPIEZA A BAJAR EN!'}</div>
+        <div class="countdown-time mt6" id="det-countdown">${countdown(auctionActive(ev)?ev.rem:Math.max(0,Math.ceil((dropStartMs(ev)-Date.now())/1000)))}</div>
+        ${auctionActive(ev)?'':`<div class="t-silver" style="font-size:12.5px;margin-top:8px">A las <b style="color:#fff">${fmtClock(dropStartMs(ev))}</b> el precio empezará a caer desde ${fmt(ev.originalPrice)}€</div>`}
       </div>
     </div>
 
+    ${auctionActive(ev)?`
     <!-- Price Chart -->
     <div class="px20 mt16">
       <div class="card" style="padding:18px">
@@ -1296,17 +1401,21 @@ function renderDetail(){
         <div style="margin-top:14px;position:relative">
           <canvas id="price-chart"></canvas>
         </div>
-        <div class="row between mt10">
+        <div class="row mt10">
           <span style="font-size:11px;font-weight:700;color:var(--green)">— Histórico (Real)</span>
-          <span class="t-silver" style="font-size:11px">┄ Proyección teórica</span>
         </div>
       </div>
-    </div>
-
-    <!-- Scarcity (live, sells off slowly) -->
+    </div>`:`
+    <!-- Drop not open yet: fixed price notice -->
     <div class="px20 mt16">
-      <div class="scarcity" id="det-scarcity" style="color:${ev.tickets<=5?'var(--red)':'var(--orange)'}">¡Quedan solo ${ev.tickets} entradas!</div>
-    </div>
+      <div class="card" style="padding:18px;display:flex;gap:14px;align-items:center">
+        <div style="width:44px;height:44px;border-radius:50%;background:rgba(236,91,19,.08);border:1px solid rgba(236,91,19,.25);display:flex;align-items:center;justify-content:center;color:var(--orange);flex-shrink:0">${ico('bell',20,1.7)}</div>
+        <div class="fill" style="min-width:0">
+          <div style="font-size:14px;font-weight:700;color:#fff">Precio de salida fijo</div>
+          <div class="t-silver" style="font-size:12.5px;line-height:1.5;margin-top:3px">La subasta se activa 3 horas antes del evento. Guárdalo en favoritos y te avisaremos cuando el precio empiece a caer.</div>
+        </div>
+      </div>
+    </div>`}
 
     <!-- Location + Nearby -->
     ${renderLocationSection(ev, nearby)}
@@ -1320,14 +1429,19 @@ function renderDetail(){
       <span class="t-silver bold ls" style="font-size:9px">PRECIO ACTUAL</span>
       <div class="row gap8 center-y">
         <span class="detail-cta-price" data-price-id="${ev.id}">${fmt(price)}€</span>
-        <span class="detail-cta-orig">${fmt(ev.originalPrice)}€</span>
+        ${auctionActive(ev)?`<span class="detail-cta-orig">${fmt(ev.originalPrice)}€</span>`:''}
       </div>
-      <span class="detail-cta-save"><span id="cta-save">Ahorras ${fmt(savedAmount(ev))}€</span> · cierra en <span id="cta-countdown">${countdown(ev.rem)}</span></span>
+      ${auctionActive(ev)
+        ?`<span class="detail-cta-save"><span id="cta-save">Ahorras ${fmt(savedAmount(ev))}€</span></span>`
+        :`<span class="detail-cta-save" style="color:var(--orange)">Baja a las ${fmtClock(dropStartMs(ev))}</span>`}
     </div>
-    <button class="btn btn-green pulse-btn" style="height:56px;padding:0 22px;font-size:15px;font-weight:900;border-radius:14px;flex-shrink:0"
-      onclick="goSelection('${ev.id}')">
-      ¡COMPRAR!
-    </button>
+    <div class="col" style="align-items:center;gap:4px;flex-shrink:0">
+      <button class="btn btn-green pulse-btn" style="height:52px;padding:0 22px;font-size:15px;font-weight:900;border-radius:14px"
+        onclick="goSelection('${ev.id}')">
+        ¡COMPRAR!
+      </button>
+      <span id="det-scarcity" style="font-size:10.5px;font-weight:700;letter-spacing:.4px;color:${ev.tickets<=5?'var(--red)':'var(--silver)'}">Quedan ${ev.tickets} entradas</span>
+    </div>
   </div>
 </div>`;
 }
@@ -1348,12 +1462,11 @@ function haversine(la1,lo1,la2,lo2){
 
 function renderLocationSection(ev, nearby){
   return `
-<div class="px20 mt16">
-  <div class="t-silver bold ls" style="font-size:12px">UBICACIÓN Y ALREDEDORES</div>
-  <div style="font-size:15px;font-weight:800;color:#fff;margin-top:8px">${ev.stadium.toUpperCase()} • Barcelona</div>
+<div class="px20 mt20">
+  <div style="font-size:17px;font-weight:700;color:#fff">Ubicación</div>
 
   <!-- Mini map (OpenStreetMap) -->
-  <div style="margin-top:12px;height:200px;background:#141414;border-radius:16px;border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden">
+  <div style="margin-top:12px;height:220px;background:#141414;border-radius:16px;border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden">
     <div class="center" style="position:absolute;inset:0;z-index:0"><span class="t-silver" style="font-size:12px">Cargando mapa…</span></div>
     <div id="detail-map" style="position:absolute;inset:0;z-index:1"></div>
     <!-- MAPS LIVE badge -->
@@ -1364,7 +1477,74 @@ function renderLocationSection(ev, nearby){
     <!-- Selected nearby popup -->
     ${S.selectedNearbyId ? renderNearbyPopup(S.selectedNearbyId) : ''}
   </div>
+
+  <!-- Venue name + full address -->
+  <div style="font-size:15px;font-weight:800;color:#fff;margin-top:14px">${ev.stadium}</div>
+  <div class="t-silver" style="font-size:13px;line-height:1.55;margin-top:4px">${addressFor(ev)}</div>
 </div>`;
+}
+
+/* ── Venue addresses (shown under the location map) ── */
+const VENUE_ADDR={
+  'Spotify Camp Nou':"C. d'Arístides Maillol, 12, Les Corts, 08028 Barcelona, España",
+  'Palau Blaugrana':'Av. de Joan XXIII, s/n, Les Corts, 08028 Barcelona, España',
+  'Estadio Municipal de Montilivi':'Av. Montilivi, 141, 17003 Girona, España',
+  'Estadio de Mestalla':'Av. de Suècia, s/n, El Pla del Real, 46010 València, España',
+  'San Mamés':'Rafael Moreno Pitxitxi, s/n, 48013 Bilbao, Bizkaia, España',
+  'Estadio Benito Villamarín':'Av. de Heliópolis, s/n, 41012 Sevilla, España',
+  'Riyadh Air Metropolitano':'Av. Luis Aragonés, 4, San Blas-Canillejas, 28022 Madrid, España',
+  'Estadi Mallorca Son Moix':'Camí dels Reis, s/n, 07011 Palma, Illes Balears, España',
+  'Estadio Abanca Balaídos':'Av. de Balaídos, s/n, 36210 Vigo, Pontevedra, España',
+  'Palau Olímpic de Badalona':'C. de Ponent, 143, 08912 Badalona, Barcelona, España',
+  'Movistar Arena':'Av. de Felipe II, s/n, Goya, 28009 Madrid, España',
+  'Roig Arena':'C. dels Germans Maristes, 16, Quatre Carreres, 46013 València, España',
+  'Nou Congost':"Av. d'Els Dolors, s/n, 08243 Manresa, Barcelona, España",
+  "Palau d'Esports de Granollers":'C. de Francesc Macià, 71, 08402 Granollers, Barcelona, España',
+  'Polideportivo Artaleku':'Artaleku Kalea, 1, 20302 Irún, Gipuzkoa, España',
+  'Estadio Olímpico Lluís Companys':'Pg. Olímpic, 17-19, Sants-Montjuïc, 08038 Barcelona, España',
+  'Teatro Coliseum':'Gran Via de les Corts Catalanes, 595, Eixample, 08007 Barcelona, España',
+  'Teatro Nacional de Catalunya (TNC)':'Pl. de les Arts, 1, Sant Martí, 08013 Barcelona, España',
+  'Museo Picasso de Barcelona':'C. de Montcada, 15-23, Ciutat Vella, 08003 Barcelona, España',
+  'MACBA':'Pl. dels Àngels, 1, El Raval, 08001 Barcelona, España',
+  'RCDE Stadium':'Av. del Baix Llobregat, 100, 08940 Cornellà de Llobregat, Barcelona, España',
+  'Palau Sant Jordi':'Pg. Olímpic, 5-7, Sants-Montjuïc, 08038 Barcelona, España',
+  'Sagrada Família':'C. de Mallorca, 401, Eixample, 08013 Barcelona, España',
+  'Sala Razzmatazz':'C. dels Almogàvers, 122, Sant Martí, 08018 Barcelona, España',
+  'Palau de la Música Catalana':'C. del Palau de la Música, 4-6, Ciutat Vella, 08003 Barcelona, España',
+  'Cinesa Diagonal Mar':'Av. Diagonal, 3, Sant Martí, 08019 Barcelona, España',
+};
+function addressFor(ev){ return VENUE_ADDR[ev.stadium] || `${ev.stadium}, Barcelona, España`; }
+
+/* ── Event description (per category, with team names for matches) ── */
+function descFor(ev){
+  if(isMatch(ev)){
+    const [home,away]=ev.teams.replace(/\s*\(.*\)$/,'').split(/\s+vs\s+/i);
+    const comp=ev.category==='Futbol'?'LaLiga':ev.category==='Basquet'?'la Liga ACB':'la competición de balonmano';
+    return `Un partido apasionante entre ${home} y ${away} en ${comp}. Vive en directo el ambiente de ${ev.stadium} y mira cómo ambos equipos compiten ferozmente por sumar puntos importantes y mejorar su posición en la clasificación. ¡No te pierdas la acción sobre el terreno de juego!`;
+  }
+  const m={
+    Nit:`Una noche inolvidable en ${ev.stadium}. Música en directo, el mejor ambiente y una experiencia pensada para disfrutar hasta la última hora. Hazte con tu entrada antes de que el precio toque suelo.`,
+    Teatre:`Disfruta de ${ev.teams} en ${ev.stadium}. Una producción aclamada por crítica y público que no deja a nadie indiferente. Consigue tu butaca al mejor precio gracias a la bajada dinámica.`,
+    EscapeRoom:`${ev.teams}: una experiencia inmersiva en ${ev.stadium}. Reúne a tu equipo, pon a prueba vuestro ingenio y escapad antes de que se agote el tiempo. ¿Aceptas el reto?`,
+    Museus:`${ev.teams} en ${ev.stadium}. Una visita imprescindible para los amantes de la cultura, con acceso a las salas principales y contenidos exclusivos. Aprovecha el precio dinámico de última hora.`,
+    LaserTag:`${ev.teams} en ${ev.stadium}. Adrenalina pura, equipamiento de última generación y partidas frenéticas para jugar con amigos. Apunta, dispara y conviértete en leyenda.`,
+    Cinema:`${ev.teams} en ${ev.stadium}. La mejor experiencia de cine con sonido envolvente y máxima comodidad. Tu plan perfecto para esta noche, ahora con el precio bajando en tiempo real.`,
+    Karting:`${ev.teams} en ${ev.stadium}. Siente la velocidad en un circuito indoor profesional, con clasificación y carrera. Compite contra tus amigos por el mejor tiempo de la pista.`,
+  };
+  return m[ev.category]||`${ev.teams} en ${ev.stadium}. Una experiencia única en Barcelona que no te puedes perder. Consigue tu entrada ahora: el precio baja en tiempo real hasta agotar existencias.`;
+}
+
+/* ── Share: native share sheet, clipboard fallback ── */
+function shareEvent(id){
+  const ev=S.events.find(e=>e.id===id);
+  if(!ev)return;
+  const text=`${ev.teams} · ${ev.date} ${ev.time} en ${ev.stadium}. ¡Ahora a ${fmt(currentPrice(ev))}€ en TicketCatch!`;
+  if(navigator.share){
+    navigator.share({title:'TicketCatch — '+ev.teams,text,url:location.href}).catch(()=>{});
+  } else if(navigator.clipboard){
+    navigator.clipboard.writeText(text+' '+location.href);
+    addNotif(id,'Enlace copiado','Los datos del evento se han copiado al portapapeles para compartir.','favorite');
+  }
 }
 
 function renderNearbyPopup(selId){
@@ -1376,13 +1556,13 @@ function renderNearbyPopup(selId){
 <div style="position:absolute;bottom:10px;left:12px;right:12px;background:rgba(20,20,20,.95);border:1.2px solid var(--green);border-radius:12px;padding:10px;z-index:10;cursor:pointer"
   onclick="goDetail('${plan.id}')">
   <div class="row between center-y">
-    <div class="fill">
+    <div class="fill" style="min-width:0;overflow:hidden">
       <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--green)">PLAN CERCANO (A ${dist.toFixed(2)} km)</div>
       <div style="font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${plan.teams}</div>
-      <div class="t-silver" style="font-size:10px">${plan.stadium} • Antes <s>${fmt(plan.originalPrice)}€</s>, baja a ${fmt(currentPrice(plan))}€</div>
+      <div class="t-silver" style="font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${plan.stadium} • Antes <s>${fmt(plan.originalPrice)}€</s>, baja a ${fmt(currentPrice(plan))}€</div>
     </div>
-    <button class="btn btn-green" style="height:28px;padding:0 10px;font-size:10px;font-weight:900;border-radius:6px;margin-left:8px;flex-shrink:0"
-      onclick="event.stopPropagation();goDetail('${plan.id}')">IR A LA PUJA</button>
+    <button class="btn btn-green" style="height:28px;padding:0 10px;font-size:10px;font-weight:900;border-radius:6px;margin-left:8px;flex-shrink:0;white-space:nowrap"
+      onclick="event.stopPropagation();goDetail('${plan.id}')">VER OFERTA</button>
   </div>
 </div>`;
 }
@@ -1401,7 +1581,7 @@ function renderNearbyCard(ev, dist){
           <span class="t-silver" style="font-size:10px;text-decoration:line-through">${fmt(ev.originalPrice)}€</span>
           <span class="t-orange" style="font-size:13px;font-weight:900" data-price-id="${ev.id}">${fmt(currentPrice(ev))}€</span>
         </span>
-        <span style="color:var(--green);font-size:10px;font-weight:700">VER PUJA →</span>
+        <span style="color:var(--green);font-size:10px;font-weight:700">VER OFERTA →</span>
       </div>
     </div>
   </div>
@@ -1671,7 +1851,13 @@ function goDetail(id){
   if(tc) S._tabScroll=tc.scrollTop;
   S.selectedEventId=id;
   S.selectedNearbyId=null;
+  S.descOpen=false;
   go('detail');
+}
+
+function toggleDesc(){
+  S.descOpen=!S.descOpen;
+  render();
 }
 
 function goSelection(evId){
@@ -1746,10 +1932,10 @@ function drawPriceChart(ev, t){
   // AHORA: green, bold, underlined — anchored to the live dot
   ctx.font='900 10px -apple-system,sans-serif';
   const nowX=Math.min(Math.max(curX,padL+22),w-padR-24);
-  ctx.fillStyle='#00FF7F';
+  ctx.fillStyle='#34D399';
   ctx.fillText('AHORA',nowX,h-8);
   const nw=ctx.measureText('AHORA').width;
-  ctx.strokeStyle='#00FF7F';ctx.lineWidth=1.5;
+  ctx.strokeStyle='#34D399';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.moveTo(nowX-nw/2,h-5);ctx.lineTo(nowX+nw/2,h-5);ctx.stroke();
 
   // ── Dashed reference line at the current price (full width, like a tracker)
@@ -1774,33 +1960,25 @@ function drawPriceChart(ev, t){
 
   // Gradient fill under the curve (green fading down, like the reference)
   const grad=ctx.createLinearGradient(0,padT,0,plotB);
-  grad.addColorStop(0,'rgba(0,255,127,.22)');grad.addColorStop(1,'rgba(0,255,127,.02)');
+  grad.addColorStop(0,'rgba(52,211,153,.22)');grad.addColorStop(1,'rgba(52,211,153,.02)');
   ctx.fillStyle=grad;
   ctx.beginPath();ctx.moveTo(pts[0][0],plotB);
   pts.forEach(p=>ctx.lineTo(p[0],p[1]));
   ctx.lineTo(curX,plotB);ctx.closePath();ctx.fill();
 
   // The line itself
-  ctx.strokeStyle='#00FF7F';ctx.lineWidth=3.5;ctx.lineCap='round';ctx.lineJoin='round';
-  ctx.shadowColor='rgba(0,255,127,.45)';ctx.shadowBlur=7;
+  ctx.strokeStyle='#34D399';ctx.lineWidth=3.5;ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.shadowColor='rgba(52,211,153,.45)';ctx.shadowBlur=7;
   ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
   pts.forEach(p=>ctx.lineTo(p[0],p[1]));
   ctx.stroke();
   ctx.shadowBlur=0;
 
-  // ── Projection: faint dashes drifting slowly toward the floor price
-  ctx.strokeStyle='rgba(0,255,127,.35)';ctx.lineWidth=2;
-  ctx.setLineDash([8,9]);ctx.lineDashOffset=-(t/130)%17;
-  ctx.beginPath();ctx.moveTo(curX,curY);
-  ctx.quadraticCurveTo(curX+(w-padR-curX)*.5,curY+(yOf(ev.floorPrice)-curY)*.75,w-padR,yOf(ev.floorPrice));
-  ctx.stroke();
-  ctx.setLineDash([]);ctx.lineDashOffset=0;
-
   // ── Live dot: calm pulse
   const pulse=(Math.sin(t/450)+1)/2;
-  ctx.fillStyle=`rgba(0,255,127,${.10+.08*pulse})`;
+  ctx.fillStyle=`rgba(52,211,153,${.10+.08*pulse})`;
   ctx.beginPath();ctx.arc(curX,curY,13+3*pulse,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#00FF7F';
+  ctx.fillStyle='#34D399';
   ctx.beginPath();ctx.arc(curX,curY,5.5,0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#141414';
   ctx.beginPath();ctx.arc(curX,curY,2,0,Math.PI*2);ctx.fill();
@@ -1816,7 +1994,7 @@ function drawPriceChart(ev, t){
   ctx.beginPath();
   if(ctx.roundRect)ctx.roundRect(tagX-5,tagY-11,tw+10,16,5);else ctx.rect(tagX-5,tagY-11,tw+10,16);
   ctx.fill();
-  ctx.fillStyle='#00FF7F';
+  ctx.fillStyle='#34D399';
   ctx.fillText(tag,tagX,tagY+1);
   ctx.textAlign='start';
 }
@@ -1846,6 +2024,10 @@ function render(){
   const root=document.getElementById('root');
   if(!root)return;
 
+  // Preserve detail scroll across re-renders (only if we stay on the same event)
+  const ds0=document.getElementById('detail-scroll');
+  const dsPos=ds0?{ev:ds0.dataset.ev,top:ds0.scrollTop}:null;
+
   let html='';
   switch(S.screen){
     case 'login':    html=renderLogin(); break;
@@ -1856,6 +2038,11 @@ function render(){
     default: html=renderLogin();
   }
   root.innerHTML=html;
+
+  if(S.screen==='detail'&&dsPos){
+    const ds1=document.getElementById('detail-scroll');
+    if(ds1&&ds1.dataset.ev===dsPos.ev) ds1.scrollTop=dsPos.top;
+  }
 
   // Restore list scroll position when returning from detail (state preservation)
   if(S.screen==='radar' && S._tabScroll){
@@ -1889,7 +2076,20 @@ function initialTickets(id){ return 9+(Math.abs(hashCode(id))%28); } // 9..36 se
 
 function init(){
   // 3x longer auction window = price drops 3x slower per second
-  S.events=initEvents().map(ev=>({...ev,totalDur:ev.totalDur*3,rem:ev.rem*3,tickets:initialTickets(ev.id)}));
+  S.events=initEvents().map(ev=>{
+    const e={...ev,totalDur:ev.totalDur*3,rem:ev.rem*3,tickets:initialTickets(ev.id)};
+    e.startMs=parseStartMs(e);
+    // Flagship demo event: El Clásico always kicks off ~2h from now, so its
+    // CatchTime is live the moment you open the app
+    if(e.id==='evt_el_clasico'){
+      const st=new Date(Date.now()+2*3600e3);
+      st.setMinutes(st.getMinutes()<30?30:60,0,0);
+      e.startMs=st.getTime();
+      e.time=String(st.getHours()).padStart(2,'0')+':'+String(st.getMinutes()).padStart(2,'0')+'h';
+    }
+    if(!auctionActive(e)) e.rem=e.totalDur; // drop hasn't started: full window pending
+    return e;
+  });
   render();
   startTicker();
 }
@@ -1898,7 +2098,7 @@ init();
 
 // Expose all onclick-callable functions to global scope
 const _g = {doLogin,quickRegister,setTab,setCat,toggleFav,goDetail,goSelection,
-  go,setQty,confirmPay,clearNotifs,markNotifRead,clearTickets,
+  go,setQty,confirmPay,clearNotifs,markNotifRead,openNotif,clearTickets,shareEvent,toggleDesc,
   setRadarCat,selectMapEvent,zoomMap,resetMap,selectNearby,toggleSearch,setSearchQ,toggleViewAll};
 Object.assign(window, _g);
 
